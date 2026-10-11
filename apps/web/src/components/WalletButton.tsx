@@ -29,7 +29,7 @@ export function WalletButton() {
   return (
     <div className="relative" ref={ref}>
       <button className={signedIn ? "act-ghost tnum" : "act-primary"} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog" data-testid="wallet-button">
-        {signedIn ? <><span className="dot text-good mr-1.5" />{short(w.address!)}</> : w.address ? "sign in" : "connect wallet"}
+        {signedIn ? <><span className="dot text-good mr-1.5" />{short(w.address!)}</> : w.address ? "sign in" : <>connect<span className="hidden sm:inline"> wallet</span></>}
       </button>
       {open && (
         <div role="dialog" aria-label="Wallet" className="panel absolute right-0 top-[calc(100%+8px)] z-50 w-[320px] max-w-[calc(100vw-32px)] bg-bg p-3 shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)]">

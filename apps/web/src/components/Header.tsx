@@ -63,16 +63,16 @@ export function Header() {
   return (
     <header className="sticky z-40 border-b hair bg-bg/90 backdrop-blur-[2px]" style={{ top: "env(safe-area-inset-top, 0px)" }}>
       {cfg && cfg.cluster !== "mainnet-beta" && (
-        <div className="border-b hair px-4 py-0.5 text-center label !text-[9px]">
+        <div className="truncate border-b hair px-4 py-0.5 text-center label !text-[9px]">
           <span className={CLUSTER_STYLE[cfg.cluster]?.cls}>{CLUSTER_STYLE[cfg.cluster]?.label}</span> · {CLUSTER_STYLE[cfg.cluster]?.note}
         </div>
       )}
-      <div className="mx-auto flex h-12 max-w-[1600px] items-center gap-6 px-4">
+      <div className="mx-auto flex h-12 max-w-[1600px] items-center gap-3 px-4 sm:gap-6">
         <Link href="/" className="group flex items-center gap-2.5 no-underline" aria-label="NEURON home">
           <Glyph />
           <span className="leading-none">
             <span className="display block text-[22px] tracking-[0.06em]">NEURON</span>
-            <span className="block whitespace-nowrap text-[9px] text-muted">collective neural computation on solana</span>
+            <span className="hidden whitespace-nowrap text-[9px] text-muted sm:block">collective neural computation on solana</span>
           </span>
         </Link>
         <nav aria-label="Primary" className="hidden flex-1 items-center gap-3.5 xl:flex">
@@ -87,7 +87,7 @@ export function Header() {
             );
           })}
         </nav>
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex min-w-0 items-center gap-3 sm:gap-4">
           <NetworkStatus />
           <WalletButton />
           <button className="act xl:hidden" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>{open ? "close" : "menu"}</button>

@@ -17,7 +17,7 @@ const h = (s: string) => sha256(new TextEncoder().encode(s));
 const hx = (b: Uint8Array) => Buffer.from(b).toString("hex");
 
 run("neuron_registry on localnet", () => {
-  const conn = new Connection(RPC ?? "", "confirmed");
+  const conn = new Connection(RPC ?? "http://127.0.0.1:8899", "confirmed");
   const programId = new PublicKey(process.env.REGISTRY_PROGRAM_ID ?? "11111111111111111111111111111111");
   const authority = Keypair.generate(), alice = Keypair.generate(), mallory = Keypair.generate();
   const send = (ixs: Parameters<Transaction["add"]>, signers: Keypair[]) =>

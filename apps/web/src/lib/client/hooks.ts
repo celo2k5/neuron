@@ -1,5 +1,5 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { importModel, type Model, type ModelArtifact, type ModelConfig, type Presentation } from "@neuron/engine";
 import { api } from "./api";
 
@@ -34,6 +34,8 @@ export function useModelDetail(id: string | null) {
 export function useModelArtifact(id: string | null, version: number | null | undefined) {
   return useQuery({
     queryKey: ["artifact", id, version], enabled: !!id && !!version, staleTime: Infinity,
+    // keep showing the previous version while the next one loads, so panels (and running jobs) don't unmount
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<Model> => importModel(await api<ModelArtifact>(`/api/models/${id}/versions/${version}`)),
   });
 }

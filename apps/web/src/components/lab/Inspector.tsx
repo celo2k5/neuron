@@ -2,7 +2,7 @@
 import { connectionCount, neuronCount, parameterCount, ENGINE_VERSION, type Model } from "@neuron/engine";
 import { graphOf } from "@neuron/viz";
 import type { Hit } from "@/graph/renderer";
-import { Hash, StatusPill, fmt, short, ago } from "../ui";
+import { Hash, fmt, short, ago } from "../ui";
 import type { ModelRow } from "@/lib/client/hooks";
 
 export interface InspectorMeta { row?: ModelRow | null; lastExperiment?: string | null; verification?: string | null; persisted?: boolean }
@@ -25,7 +25,7 @@ export function NetworkFacts({ model, meta }: { model: Model; meta?: InspectorMe
       <dt>engine</dt><dd>{model.engine ?? ENGINE_VERSION}</dd>
       <dt>config hash</dt><dd><Hash value={model.configHash} /></dd>
       <dt>artifact</dt><dd><Hash value={model.artifactHash} /></dd>
-      <dt>version</dt><dd>v{model.version} {model.trained ? <StatusPill status="trained" /> : <span className="text-faint">untrained · generated</span>}</dd>
+      <dt>version</dt><dd>v{model.version} {model.trained ? <span className="pill text-good">trained checkpoint</span> : <span className="text-faint">untrained · generated</span>}</dd>
       <dt>last run</dt><dd>{meta?.lastExperiment ? ago(meta.lastExperiment) : "—"}</dd>
       <dt>verification</dt><dd>{meta?.verification ?? <span className="text-faint">not committed</span>}</dd>
     </dl>

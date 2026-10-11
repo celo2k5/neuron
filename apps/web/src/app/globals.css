@@ -148,8 +148,8 @@ input[type="range"].field { padding: 0; height: 18px; accent-color: var(--accent
 
 /* scroll reveal: elements are readable at rest; motion is an enhancement */
 [data-reveal] { transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1), clip-path .9s cubic-bezier(.2,.7,.2,1); }
-[data-reveal="pending"] { opacity: .2; transform: translateY(18px); }
-[data-reveal="pending"][data-reveal-kind="wipe"] { clip-path: inset(0 100% 0 0); opacity: 1; transform: none; }
+[data-reveal="pending"] { opacity: .35; transform: translateY(14px); }
+[data-reveal="pending"][data-reveal-kind="wipe"] { clip-path: inset(0 45% 0 0); opacity: .45; transform: none; }
 [data-reveal="shown"] { opacity: 1; transform: none; clip-path: inset(0 0 0 0); }
 
 .scanline { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to bottom, transparent 0, var(--glow) 50%, transparent 100%); height: 40%; opacity: .0; }

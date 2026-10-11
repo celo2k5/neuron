@@ -66,11 +66,11 @@ export function Community() {
             </div>
           </div>
           <div className="mt-6 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
-            <div className="flex flex-col gap-6">
+            <div className="flex min-w-0 flex-col gap-6">
               <Register />
               {mine.length > 0 && <Panel title={`your neurons · ${mine.length}`}>{mine.map((n) => <MyNeuron key={n.id} n={n} />)}</Panel>}
             </div>
-            <div className="flex flex-col gap-6">
+            <div className="flex min-w-0 flex-col gap-6">
               <Panel title="version timeline" meta={`${s.versions.length} versions`}>
                 <ol className="flex flex-col" data-testid="versions">
                   {s.versions.map((v) => (

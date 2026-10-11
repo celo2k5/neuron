@@ -51,7 +51,7 @@ export function ModelDetail({ id }: { id: string }) {
           <h1 className="display mt-2 text-[40px]">{m.name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted">
             <span>{m.architecture}</span><span className="tnum">{[m.config.inputDim, ...m.config.hidden, m.config.outputDim].join("·")}</span>
-            {m.trained ? <StatusPill status="completed" /> : <span className="pill text-faint">generated · untrained</span>}
+            {m.trained ? <span className="pill text-good">trained versions</span> : <span className="pill text-faint">generated · untrained</span>}
             {m.forked_from && <span>forked from <Link href={`/networks/${m.forked_from}`}>{m.forked_from}</Link></span>}
           </div>
         </div>

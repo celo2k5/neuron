@@ -2,7 +2,7 @@
   "name": "neuron",
   "private": true,
   "version": "0.1.0",
-  "description": "NEURON — collective neural computation on Solana",
+  "description": "NEURON \u2014 collective neural computation on Solana",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -11,9 +11,9 @@
     "node": ">=20.11"
   },
   "scripts": {
-    "test": "npm run test -w @neuron/engine && npm run test -w @neuron/web",
+    "test": "npm run test -w @neuron/engine && npm run test -w @neuron/viz && npm run test -w @neuron/solana && npm run test -w @neuron/web",
     "test:engine": "npm run test -w @neuron/engine",
-    "typecheck": "npm run typecheck -w @neuron/engine && npm run typecheck -w @neuron/web",
+    "typecheck": "npm run typecheck -w @neuron/engine && npm run typecheck -w @neuron/viz && npm run typecheck -w @neuron/solana && npm run typecheck -w @neuron/web",
     "lint": "npm run lint -w @neuron/web",
     "build": "npm run build -w @neuron/web",
     "dev": "npm run dev -w @neuron/web",
@@ -21,6 +21,7 @@
     "db:migrate": "npm run db:migrate -w @neuron/web",
     "localnet": "bash infra/localnet.sh",
     "test:program": "bash programs/neuron_registry/test.sh",
-    "test:e2e": "npm run test:e2e -w @neuron/web"
+    "test:e2e": "npm run test:e2e -w @neuron/web",
+    "db:seed": "npm run db:seed -w @neuron/web"
   }
 }

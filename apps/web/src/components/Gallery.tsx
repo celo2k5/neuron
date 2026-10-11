@@ -9,7 +9,7 @@ import { useModelArtifact, type ModelRow } from "@/lib/client/hooks";
 import { useSession } from "@/lib/client/wallet";
 import { seededInput } from "@/lib/client/specimens";
 import { GraphCanvas } from "./GraphCanvas";
-import { Empty, ErrorBox, Hash, Reveal, Scramble, Skeleton, StatusPill, ago, fmt, short } from "./ui";
+import { Empty, ErrorBox, Hash, Reveal, Scramble, Skeleton, ago, fmt, short } from "./ui";
 
 export function Gallery() {
   const sp = useSearchParams();
@@ -55,8 +55,8 @@ export function Gallery() {
         <label className="flex items-center gap-2 pb-1.5 text-[11px]"><input type="checkbox" checked={mine} disabled={!session.data?.session} onChange={(e) => setMine(e.target.checked)} /> mine only</label>
       </div>
       {list.error && <ErrorBox error={list.error} />}
-      <div className="mt-4 grid grid-cols-1 gap-px bg-line sm:grid-cols-2 xl:grid-cols-4" data-testid="gallery">
-        {list.isLoading && Array.from({ length: 8 }, (_, i) => <div key={i} className="bg-bg p-3"><Skeleton h={180} /><div className="mt-2"><Skeleton h={10} w="60%" /></div></div>)}
+      <div className="mt-4 grid grid-cols-1 border-l border-t hair sm:grid-cols-2 xl:grid-cols-4" data-testid="gallery">
+        {list.isLoading && Array.from({ length: 8 }, (_, i) => <div key={i} className="border-b border-r hair p-3"><Skeleton h={180} /><div className="mt-2"><Skeleton h={10} w="60%" /></div></div>)}
         {items.map((m, i) => <Card key={m.id} m={m} i={i} selected={!!compare.find((c) => c.id === m.id)} onCompare={() => toggle(m)} />)}
       </div>
       {!list.isLoading && items.length === 0 && <Empty title="no models match">Try clearing filters, or generate the first one.</Empty>}
@@ -76,7 +76,7 @@ function Card({ m, i, selected, onCompare }: { m: ModelRow; i: number; selected:
   const model = latest.data ?? v1;
   const [acts, setActs] = useState<number[][] | null>(null);
   return (
-    <Reveal delay={(i % 4) * 60} className="bg-bg">
+    <Reveal delay={(i % 4) * 60} className="border-b border-r hair">
       <article className={`group relative ${selected ? "outline outline-1 outline-accent" : ""}`} onMouseEnter={() => setActs(forward(model, seededInput(m.seed, m.config.inputDim)).a.map((v) => Array.from(v)))}>
         <Link href={`/networks/${m.id}`} className="block no-underline" aria-label={`${m.name}, ${m.architecture}`}>
           <GraphCanvas model={model} form={m.presentation.form as VisualForm} palette={m.presentation.palette} activations={acts} interactive={false} labels={false} className="h-[190px]" edgeBudget={600} />
@@ -84,7 +84,7 @@ function Card({ m, i, selected, onCompare }: { m: ModelRow; i: number; selected:
         <div className="border-t hair p-3">
           <div className="flex items-start justify-between gap-2">
             <Link href={`/networks/${m.id}`} className="truncate text-[12px] no-underline">{m.name}</Link>
-            {m.trained ? <StatusPill status="completed" /> : <span className="pill text-faint">untrained</span>}
+            {m.trained ? <span className="pill text-good">trained</span> : <span className="pill text-faint">untrained</span>}
           </div>
           <div className="mt-1 tnum text-[10px] text-muted">{m.architecture} · {[m.config.inputDim, ...m.config.hidden, m.config.outputDim].join("·")} · {m.param_count} params</div>
           <div className="mt-1 flex items-center justify-between text-[10px] text-faint">

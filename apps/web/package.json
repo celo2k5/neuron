@@ -13,7 +13,9 @@
     "test:e2e": "playwright test",
     "db:migrate": "tsx scripts/migrate.ts",
     "worker": "tsx scripts/worker.ts",
-    "localnet:setup": "tsx scripts/localnet-setup.ts"
+    "localnet:setup": "tsx scripts/localnet-setup.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "openapi": "tsx -e \"import('./src/lib/openapi.ts').then(m=>require('fs').writeFileSync('../../docs/openapi.json', JSON.stringify(m.openapi(),null,2)))\""
   },
   "dependencies": {
     "@neuron/engine": "1.0.0",
@@ -27,10 +29,11 @@
     "bs58": "6.0.0",
     "next": "15.5.27",
     "pg": "8.23.1",
-    "react": "19.1.9",
-    "react-dom": "19.1.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "tweetnacl": "1.0.3",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "zod-to-json-schema": "3.25.2"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",

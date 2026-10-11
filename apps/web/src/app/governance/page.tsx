@@ -20,7 +20,7 @@ export default function GovernancePage() {
       <p className="mt-2 max-w-[78ch] text-muted">Token holders can make advisory proposals or bounded policy changes to the community network. No vote can move treasury funds, and no off-chain vote executes anything outside the whitelisted network parameters.</p>
       {!cfg?.mint && <div className="mt-4 border border-warn/60 p-3 text-warn">Governance needs a configured $NEURON mint to read voting weight. It is disabled here.</div>}
       <div className="mt-6 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Panel title="explicit rules">
             {r && (
               <dl className="kv text-[11px]" data-testid="gov-rules">

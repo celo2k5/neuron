@@ -40,6 +40,10 @@ export function Lab() {
   const graph = useRef<GraphHandle>(null);
 
   useEffect(() => { setLast(null); setHistory([]); setHit(null); setPreview(null); }, [base?.artifactHash]);
+  // pin the version in the URL so new checkpoints arriving mid-session never swap the model under the user
+  useEffect(() => {
+    if (modelId && !vParam && detail.data) router.replace(`/lab?model=${modelId}&v=${detail.data.model.latest_version}`);
+  }, [modelId, vParam, detail.data, router]);
   useEffect(() => { if (detail.data?.model.presentation) { setForm(detail.data.model.presentation.form); setPalette(detail.data.model.presentation.palette); } }, [detail.data?.model.presentation]);
 
   const saveModel = async () => {

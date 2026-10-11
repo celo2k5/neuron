@@ -92,6 +92,19 @@ export default function TokenPage() {
           <ErrorBox error={err} />
         </Panel>
       </div>
+      <Panel title="what $NEURON pays for" className="mt-6">
+        <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-[11px] tnum" data-testid="utility-table">
+          <thead><tr className="text-left text-muted"><th className="pr-3 font-normal">action</th><th className="pr-3 font-normal">free tier</th><th className="pr-3 font-normal">beyond it</th><th className="font-normal">settled</th></tr></thead>
+          <tbody>
+            <tr className="border-t hair"><td className="py-1.5 pr-3">browse, inspect, run in browser</td><td className="pr-3">unlimited</td><td className="pr-3">—</td><td>never charged</td></tr>
+            <tr className="border-t hair"><td className="py-1.5 pr-3">saved experiment</td><td className="pr-3">{cfg?.freeExperimentsPerDay}/day per wallet</td><td className="pr-3">1 credit</td><td>reserved at queue, consumed on completion, released on failure</td></tr>
+            <tr className="border-t hair"><td className="py-1.5 pr-3">training job</td><td className="pr-3">{cfg?.freeTrainingPerDay}/day, ≤ {cfg?.freeTrainingMaxEpochs} epochs</td><td className="pr-3">⌈epochs × samples × params ÷ 2,000,000⌉ credits</td><td>pro-rata on cancel; unused credits released</td></tr>
+            <tr className="border-t hair"><td className="py-1.5 pr-3">community neuron registration</td><td className="pr-3">—</td><td className="pr-3">{cfg?.registrationCredits} credits</td><td>consumed when the network version is created</td></tr>
+            <tr className="border-t hair"><td className="py-1.5 pr-3">governance proposal / vote</td><td className="pr-3">—</td><td className="pr-3">needs a $NEURON balance; nothing is spent</td><td>weight = balance at vote</td></tr>
+            <tr className="border-t hair text-faint"><td className="py-1.5 pr-3">premium model storage</td><td className="pr-3" colSpan={3}>not built: every saved model and checkpoint is currently stored at no charge</td></tr>
+          </tbody>
+        </table></div>
+      </Panel>
       {session.data?.session && (
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <Panel title="payment intents">

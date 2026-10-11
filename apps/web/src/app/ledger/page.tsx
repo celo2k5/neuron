@@ -43,7 +43,7 @@ export default function LedgerPage() {
             </table></div>
           )}
         </Panel>
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Panel title="verify any experiment">
             <input className="field tnum" placeholder="experiment uuid" value={id} onChange={(e) => setId(e.target.value.trim())} aria-label="Experiment id" />
             {v.isFetching && <div className="mt-2"><Spinner label="reading chain" /></div>}

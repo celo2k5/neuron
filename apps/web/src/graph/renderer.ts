@@ -250,7 +250,8 @@ export class GraphRenderer {
 
   private frame(now: number) {
     this.raf = 0;
-    if (!this.visible) return;
+    // off-screen canvases still paint their resting frame once, but don't keep animating
+    if (!this.visible) { if (this.dirty) { this.dirty = false; this.draw(now); } return; }
     const animating = this.draw(now);
     if (animating || this.dirty) { this.dirty = false; this.raf = requestAnimationFrame((t) => this.frame(t)); }
   }

@@ -1,0 +1,2813 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NEURON API",
+    "version": "1.0.0",
+    "description": "All errors use { error: { code, message, details, requestId } }. List endpoints use opaque cursors."
+  },
+  "components": {
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "neuron_session"
+      }
+    },
+    "schemas": {
+      "ModelConfig": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 48
+          },
+          "seed": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "architecture": {
+            "type": "string",
+            "enum": [
+              "feedforward",
+              "sparse",
+              "residual"
+            ]
+          },
+          "inputDim": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "outputDim": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "hidden": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "minItems": 1,
+            "maxItems": 7
+          },
+          "activations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "relu",
+                "sigmoid",
+                "tanh",
+                "leaky_relu",
+                "linear"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 7
+          },
+          "outputActivation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "relu",
+                  "sigmoid",
+                  "tanh",
+                  "leaky_relu",
+                  "linear"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "softmax"
+                ]
+              }
+            ]
+          },
+          "density": {
+            "type": "number",
+            "minimum": 0.05,
+            "maximum": 1
+          },
+          "init": {
+            "type": "string",
+            "enum": [
+              "xavier",
+              "he",
+              "uniform",
+              "normal"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "seed",
+          "architecture",
+          "inputDim",
+          "outputDim",
+          "hidden",
+          "activations",
+          "outputActivation",
+          "density",
+          "init"
+        ],
+        "additionalProperties": false
+      },
+      "Presentation": {
+        "type": "object",
+        "properties": {
+          "form": {
+            "type": "string",
+            "enum": [
+              "CONSTELLATION",
+              "CORTEX",
+              "CIRCUIT",
+              "FRACTAL",
+              "SYNAPSE",
+              "MINIMAL"
+            ]
+          },
+          "palette": {
+            "type": "string",
+            "enum": [
+              "seed",
+              "theme"
+            ]
+          }
+        },
+        "required": [
+          "form",
+          "palette"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Liveness",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ready": {
+      "get": {
+        "summary": "Readiness: database + RPC",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "summary": "Public configuration, limits and integration blockers",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "summary": "Operational metrics and alerts",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/challenge": {
+      "post": {
+        "summary": "Issue a single-use, domain-bound challenge (sign-in or action-bound)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "intent": {
+                    "type": "string",
+                    "enum": [
+                      "sign-in",
+                      "register-neuron",
+                      "update-neuron",
+                      "vote"
+                    ]
+                  },
+                  "wallet": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "intent",
+                  "wallet"
+                ],
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/session": {
+      "get": {
+        "summary": "Current session",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a session from a signed challenge",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "signature": {
+                    "type": "string",
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "message",
+                  "signature"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Revoke this session",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models": {
+      "get": {
+        "summary": "List public models",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "architecture",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "trained",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Generate and persist a model",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 48
+                      },
+                      "seed": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "architecture": {
+                        "type": "string",
+                        "enum": [
+                          "feedforward",
+                          "sparse",
+                          "residual"
+                        ]
+                      },
+                      "inputDim": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 64
+                      },
+                      "outputDim": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 64
+                      },
+                      "hidden": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "minItems": 1,
+                        "maxItems": 7
+                      },
+                      "activations": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "relu",
+                            "sigmoid",
+                            "tanh",
+                            "leaky_relu",
+                            "linear"
+                          ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 7
+                      },
+                      "outputActivation": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "relu",
+                              "sigmoid",
+                              "tanh",
+                              "leaky_relu",
+                              "linear"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "enum": [
+                              "softmax"
+                            ]
+                          }
+                        ]
+                      },
+                      "density": {
+                        "type": "number",
+                        "minimum": 0.05,
+                        "maximum": 1
+                      },
+                      "init": {
+                        "type": "string",
+                        "enum": [
+                          "xavier",
+                          "he",
+                          "uniform",
+                          "normal"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "seed",
+                      "architecture",
+                      "inputDim",
+                      "outputDim",
+                      "hidden",
+                      "activations",
+                      "outputActivation",
+                      "density",
+                      "init"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "presentation": {
+                    "type": "object",
+                    "properties": {
+                      "form": {
+                        "type": "string",
+                        "enum": [
+                          "CONSTELLATION",
+                          "CORTEX",
+                          "CIRCUIT",
+                          "FRACTAL",
+                          "SYNAPSE",
+                          "MINIMAL"
+                        ]
+                      },
+                      "palette": {
+                        "type": "string",
+                        "enum": [
+                          "seed",
+                          "theme"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "form",
+                      "palette"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "forkedFrom": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/{id}": {
+      "get": {
+        "summary": "Model detail, versions, experiments, training",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Save preferred presentation (owner)",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "form": {
+                    "type": "string",
+                    "enum": [
+                      "CONSTELLATION",
+                      "CORTEX",
+                      "CIRCUIT",
+                      "FRACTAL",
+                      "SYNAPSE",
+                      "MINIMAL"
+                    ]
+                  },
+                  "palette": {
+                    "type": "string",
+                    "enum": [
+                      "seed",
+                      "theme"
+                    ]
+                  }
+                },
+                "required": [
+                  "form",
+                  "palette"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/{id}/versions/{version}": {
+      "get": {
+        "summary": "Immutable declarative model artifact",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/{id}/fork": {
+      "post": {
+        "summary": "Fork configuration",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 48
+                  },
+                  "seed": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "enum": [
+                      "feedforward",
+                      "sparse",
+                      "residual"
+                    ]
+                  },
+                  "inputDim": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "outputDim": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "hidden": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 64
+                    },
+                    "minItems": 1,
+                    "maxItems": 7
+                  },
+                  "activations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "relu",
+                        "sigmoid",
+                        "tanh",
+                        "leaky_relu",
+                        "linear"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 7
+                  },
+                  "outputActivation": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "relu",
+                          "sigmoid",
+                          "tanh",
+                          "leaky_relu",
+                          "linear"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "softmax"
+                        ]
+                      }
+                    ]
+                  },
+                  "density": {
+                    "type": "number",
+                    "minimum": 0.05,
+                    "maximum": 1
+                  },
+                  "init": {
+                    "type": "string",
+                    "enum": [
+                      "xavier",
+                      "he",
+                      "uniform",
+                      "normal"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models/import": {
+      "post": {
+        "summary": "Import a reproducible (untrained) artifact",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experiments": {
+      "get": {
+        "summary": "List experiments",
+        "parameters": [
+          {
+            "name": "modelId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Queue an experiment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "modelId": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "input": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": -1000000,
+                      "maximum": 1000000
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  },
+                  "inputSource": {
+                    "type": "string",
+                    "enum": [
+                      "manual",
+                      "seeded",
+                      "dataset"
+                    ]
+                  },
+                  "inputSeed": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "modelId",
+                  "input",
+                  "inputSource"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experiments/{id}": {
+      "get": {
+        "summary": "Experiment status and result",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/experiments/{id}/reproduce": {
+      "post": {
+        "summary": "Re-run the pinned version on the same input",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/training": {
+      "get": {
+        "summary": "List training jobs",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Start a training job",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "modelId": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "xor",
+                      "circles",
+                      "spiral",
+                      "moons",
+                      "sine"
+                    ]
+                  },
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 16,
+                    "maximum": 1000,
+                    "default": 240
+                  },
+                  "optimizer": {
+                    "type": "string",
+                    "enum": [
+                      "sgd",
+                      "adam"
+                    ]
+                  },
+                  "learningRate": {
+                    "type": "number",
+                    "minimum": 0.00001,
+                    "maximum": 1
+                  },
+                  "epochs": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2000
+                  },
+                  "batchSize": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 256
+                  },
+                  "valFraction": {
+                    "type": "number",
+                    "minimum": 0.05,
+                    "maximum": 0.5
+                  },
+                  "momentum": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 0.99
+                  }
+                },
+                "required": [
+                  "modelId",
+                  "dataset",
+                  "optimizer",
+                  "learningRate",
+                  "epochs",
+                  "batchSize",
+                  "valFraction"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/training/{id}": {
+      "get": {
+        "summary": "Training status, metrics, checkpoints",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/training/{id}/{action}": {
+      "post": {
+        "summary": "pause | cancel | resume",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/community": {
+      "get": {
+        "summary": "Community network state (optionally ?version=)",
+        "parameters": [
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/community/neurons": {
+      "post": {
+        "summary": "Register a neuron",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "neuron": {
+                    "type": "object",
+                    "properties": {
+                      "layer": {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          {
+                            "type": "number",
+                            "enum": [
+                              2
+                            ]
+                          }
+                        ]
+                      },
+                      "bias": {
+                        "type": "number",
+                        "minimum": -2,
+                        "maximum": 2
+                      },
+                      "seed": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "scale": {
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "minimum": 0,
+                        "maximum": 2
+                      }
+                    },
+                    "required": [
+                      "layer",
+                      "bias",
+                      "seed",
+                      "scale"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "signed": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "signature": {
+                        "type": "string",
+                        "maxLength": 120
+                      }
+                    },
+                    "required": [
+                      "message",
+                      "signature"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "neuron",
+                  "signed"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/community/neurons/{id}": {
+      "patch": {
+        "summary": "Update your neuron",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "neuron": {
+                    "type": "object",
+                    "properties": {
+                      "layer": {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "enum": [
+                              1
+                            ]
+                          },
+                          {
+                            "type": "number",
+                            "enum": [
+                              2
+                            ]
+                          }
+                        ]
+                      },
+                      "bias": {
+                        "type": "number",
+                        "minimum": -2,
+                        "maximum": 2
+                      },
+                      "seed": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "scale": {
+                        "type": "number",
+                        "exclusiveMinimum": true,
+                        "minimum": 0,
+                        "maximum": 2
+                      }
+                    },
+                    "required": [
+                      "layer",
+                      "bias",
+                      "seed",
+                      "scale"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "signed": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "signature": {
+                        "type": "string",
+                        "maxLength": 120
+                      }
+                    },
+                    "required": [
+                      "message",
+                      "signature"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "neuron",
+                  "signed"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Retire your neuron",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/token": {
+      "get": {
+        "summary": "Mint info and a wallet's balance",
+        "parameters": [
+          {
+            "name": "wallet",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/credits": {
+      "get": {
+        "summary": "Credit balance and ledger",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments": {
+      "get": {
+        "summary": "Your payment intents",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a payment intent",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "credits": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "credits"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/{id}": {
+      "get": {
+        "summary": "Intent status",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit the transaction signature",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "signature": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "signature"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/commitments/{experimentId}": {
+      "get": {
+        "summary": "Verify against chain (public)",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Prepare unsigned commit tx",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Submit commit signature",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "signature": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "signature"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ledger": {
+      "get": {
+        "summary": "Commitments, payments, network versions",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/governance": {
+      "get": {
+        "summary": "Rules and proposals",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a proposal",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/governance/{id}/vote": {
+      "post": {
+        "summary": "Signed vote",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "summary": "Server-sent events; resume with Last-Event-ID",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity": {
+      "get": {
+        "summary": "Recent activity events",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "topic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "description": "Error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {},
+                        "requestId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "requestId"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
