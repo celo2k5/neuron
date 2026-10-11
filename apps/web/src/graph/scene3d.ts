@@ -90,6 +90,7 @@ export class Scene3D {
   private pointer = new THREE.Vector2();
   private intro = 0;
   private radius = 10;
+  private light = false;
 
   constructor(private host: HTMLElement, colors: ThemeColors, opts: Scene3DOptions = {}) {
     this.colors = colors;
@@ -181,6 +182,7 @@ export class Scene3D {
     const bg = col(this.colors.bg, "#080b12");
     this.scene.background = bg;
     const light = bg.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
+    this.light = light;
     // additive light on a light ground washes out; dial bloom down for SOLAR
     this.bloom.strength = (light ? 0.2 : 0.8) * this.opts.bloom;
     const dc = col(this.colors.muted, "#7f91af").multiplyScalar(light ? 0.6 : 0.45);
@@ -291,11 +293,14 @@ export class Scene3D {
     const ec = this.edges.geometry.getAttribute("color") as THREE.BufferAttribute;
     this.edgeBase = new Float32Array(ec.count * 3);
     const dense = G.edges.length > 700 ? 0.42 : 0.85;
+    const bg = col(this.colors.bg, "#080b12");
     G.edges.forEach((e, k) => {
       const m = Math.min(1, Math.abs(e.w) / G.maxAbsW);
       const c = e.w >= 0 ? pos : neg;
       const b = (0.03 + 0.2 * m * m) * dense * (e.kind === "skip" ? 1.6 : 1);
-      for (const v of [0, 1]) this.edgeBase.set([c.r * b, c.g * b, c.b * b], (k * 2 + v) * 3);
+      // dark grounds: additive light (colour × brightness). light grounds: tint from the paper toward the colour.
+      const out = this.light ? bg.clone().lerp(c, Math.min(1, b * 2.2)) : c.clone().multiplyScalar(b);
+      for (const v of [0, 1]) this.edgeBase.set([out.r, out.g, out.b], (k * 2 + v) * 3);
     });
     (ec.array as Float32Array).set(this.edgeBase);
     ec.needsUpdate = true;
@@ -384,7 +389,11 @@ export class Scene3D {
       if (u > 0) { // carried signal stays faintly lit
         const hold = u > 1 ? 0.35 * Math.exp(-(el - t1) / 900) : 0.9;
         const b = f * hold * 0.55;
-        for (const v of [0, 1]) { const o = (e.e * 2 + v) * 3; arr[o] += c.r * b; arr[o + 1] += c.g * b; arr[o + 2] += c.b * b; }
+        for (const v of [0, 1]) {
+          const o = (e.e * 2 + v) * 3;
+          if (this.light) { const k2 = Math.min(1, b * 1.6); arr[o] += (c.r - arr[o]) * k2; arr[o + 1] += (c.g - arr[o + 1]) * k2; arr[o + 2] += (c.b - arr[o + 2]) * k2; }
+          else { arr[o] += c.r * b; arr[o + 1] += c.g * b; arr[o + 2] += c.b * b; }
+        }
       }
       if (u < 0 || u > 1 || n >= MAX_PULSES) continue;
       const s = e.s * 3, d = e.t * 3, k = u * u * (3 - 2 * u);
