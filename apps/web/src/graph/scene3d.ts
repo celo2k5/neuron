@@ -43,7 +43,16 @@ const POINT_FS = /* glsl */ `
     float halo = pow(smoothstep(0.5, 0.0, d), 3.0) * (0.28 + vAct * 0.9);
     float a = (core * (uBase + vAct * 0.6) + halo) * (1.0 - vDepth * 0.55);
     // additive (dark grounds) wants premultiplied light; normal blending (paper) wants straight colour
-    gl_FragColor = uLight > 0.5 ? vec4(vColor, clamp(a * 1.4, 0.0, 1.0)) : vec4(vColor * a, a);
+    if (uLight > 0.5) {
+      // paper: an opaque inked core with a thin darker rim, plus a soft tinted halo
+      float disc = smoothstep(0.24, 0.19, d);
+      float rim = smoothstep(0.17, 0.2, d) * disc;
+      vec3 ink = mix(vColor, vColor * 0.55, rim);
+      float la = max(disc * (0.75 + vAct * 0.25), halo * 0.5) * (1.0 - vDepth * 0.4);
+      gl_FragColor = vec4(ink, clamp(la, 0.0, 1.0));
+    } else {
+      gl_FragColor = vec4(vColor * a, a);
+    }
   }`;
 const PULSE_FS = /* glsl */ `
   varying vec3 vColor; varying float vAct; varying float vDepth;
