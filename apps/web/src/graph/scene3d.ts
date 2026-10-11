@@ -35,22 +35,24 @@ const POINT_VS = /* glsl */ `
   }`;
 const POINT_FS = /* glsl */ `
   varying vec3 vColor; varying float vAct; varying float vDepth;
-  uniform float uBase;
+  uniform float uBase; uniform float uLight;
   void main() {
     vec2 c = gl_PointCoord - 0.5; float d = length(c);
     if (d > 0.5) discard;
     float core = smoothstep(0.2, 0.11, d);
     float halo = pow(smoothstep(0.5, 0.0, d), 3.0) * (0.28 + vAct * 0.9);
     float a = (core * (uBase + vAct * 0.6) + halo) * (1.0 - vDepth * 0.55);
-    gl_FragColor = vec4(vColor * a, a);
+    // additive (dark grounds) wants premultiplied light; normal blending (paper) wants straight colour
+    gl_FragColor = uLight > 0.5 ? vec4(vColor, clamp(a * 1.4, 0.0, 1.0)) : vec4(vColor * a, a);
   }`;
 const PULSE_FS = /* glsl */ `
   varying vec3 vColor; varying float vAct; varying float vDepth;
+  uniform float uLight;
   void main() {
     vec2 c = gl_PointCoord - 0.5; float d = length(c);
     if (d > 0.5) discard;
     float a = (smoothstep(0.16, 0.0, d) * 0.9 + pow(smoothstep(0.5, 0.0, d), 2.4) * 0.6) * vAct;
-    gl_FragColor = vec4(vColor * a, a);
+    gl_FragColor = uLight > 0.5 ? vec4(vColor, clamp(a, 0.0, 1.0)) : vec4(vColor * a, a);
   }`;
 
 const col = (s: string, fallback = "#ffffff") => {
@@ -172,7 +174,7 @@ export class Scene3D {
   private pointMaterial(fs: string, base: number) {
     return new THREE.ShaderMaterial({
       vertexShader: POINT_VS, fragmentShader: fs, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      uniforms: { uPixel: { value: this.renderer.getPixelRatio() }, uTime: { value: 0 }, uBase: { value: base } },
+      uniforms: { uPixel: { value: this.renderer.getPixelRatio() }, uTime: { value: 0 }, uBase: { value: base }, uLight: { value: 0 } },
     });
   }
 
@@ -190,7 +192,7 @@ export class Scene3D {
     for (let i = 0; i < t.count; i++) t.setXYZ(i, dc.r, dc.g, dc.b);
     t.needsUpdate = true;
     for (const m of [this.nodes?.material, this.pulses.material, this.dust.material]) {
-      if (m) (m as THREE.ShaderMaterial).blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
+      if (m) { (m as THREE.ShaderMaterial).blending = light ? THREE.NormalBlending : THREE.AdditiveBlending; (m as THREE.ShaderMaterial).uniforms.uLight.value = light ? 1 : 0; }
     }
     if (this.edges) (this.edges.material as THREE.LineBasicMaterial).blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
     this.rings.children.forEach((r) => { const m = (r as THREE.Line).material as THREE.LineBasicMaterial; m.color = col(this.colors.muted, "#7f91af"); m.opacity = light ? 0.35 : 0.13; });
@@ -299,7 +301,7 @@ export class Scene3D {
       const c = e.w >= 0 ? pos : neg;
       const b = (0.03 + 0.2 * m * m) * dense * (e.kind === "skip" ? 1.6 : 1);
       // dark grounds: additive light (colour × brightness). light grounds: tint from the paper toward the colour.
-      const out = this.light ? bg.clone().lerp(c, Math.min(1, b * 2.2)) : c.clone().multiplyScalar(b);
+      const out = this.light ? bg.clone().lerp(c, Math.min(0.85, 0.1 + b * 4.5)) : c.clone().multiplyScalar(b);
       for (const v of [0, 1]) this.edgeBase.set([out.r, out.g, out.b], (k * 2 + v) * 3);
     });
     (ec.array as Float32Array).set(this.edgeBase);
