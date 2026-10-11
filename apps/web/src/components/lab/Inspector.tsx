@@ -2,7 +2,7 @@
 import { connectionCount, neuronCount, parameterCount, ENGINE_VERSION, type Model } from "@neuron/engine";
 import { graphOf } from "@neuron/viz";
 import type { Hit } from "@/graph/renderer";
-import { Hash, fmt, short, ago } from "../ui";
+import { Hash, fmt, short, ago, When, count } from "../ui";
 import type { ModelRow } from "@/lib/client/hooks";
 
 export interface InspectorMeta { row?: ModelRow | null; lastExperiment?: string | null; verification?: string | null; persisted?: boolean }
@@ -13,12 +13,12 @@ export function NetworkFacts({ model, meta }: { model: Model; meta?: InspectorMe
     <dl className="kv text-[12.5px]" data-testid="network-facts">
       <dt>network id</dt><dd>{model.id}</dd>
       <dt>owner</dt><dd>{meta?.row?.owner_wallet ? short(meta.row.owner_wallet, 5) : meta?.persisted ? "anonymous" : "unsaved (local)"}</dd>
-      <dt>created</dt><dd>{meta?.row ? new Date(meta.row.created_at).toISOString().replace("T", " ").slice(0, 19) + "Z" : "—"}</dd>
+      <dt>created</dt><dd><When iso={meta?.row?.created_at} /></dd>
       <dt>architecture</dt><dd>{model.config.architecture}{model.config.architecture === "sparse" ? ` · d=${model.config.density}` : ""}</dd>
       <dt>layers</dt><dd>{model.layers.length + 1} ({[model.config.inputDim, ...model.config.hidden, model.config.outputDim].join("·")})</dd>
-      <dt>neurons</dt><dd className="tnum">{neuronCount(model)}</dd>
-      <dt>connections</dt><dd className="tnum">{connectionCount(model)}</dd>
-      <dt>parameters</dt><dd className="tnum">{parameterCount(model)}</dd>
+      <dt>neurons</dt><dd className="tnum">{count(neuronCount(model))}</dd>
+      <dt>connections</dt><dd className="tnum">{count(connectionCount(model))}</dd>
+      <dt>parameters</dt><dd className="tnum">{count(parameterCount(model))}</dd>
       <dt>activations</dt><dd>{acts.join(", ")}</dd>
       <dt>init</dt><dd>{model.config.init}</dd>
       <dt>seed</dt><dd className="break-all">{model.config.seed}</dd>

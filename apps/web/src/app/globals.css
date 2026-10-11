@@ -94,6 +94,7 @@ body {
 a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--fg) 25%, transparent); text-decoration-thickness: 1px; text-underline-offset: 4px; transition: text-decoration-color .25s, color .25s; }
 a:hover { text-decoration-color: var(--accent-2); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+canvas:focus-visible { outline-offset: -3px; border-radius: 16px; }
 h1, h2, h3 { text-wrap: balance; }
 p { text-wrap: pretty; }
 }
@@ -145,7 +146,10 @@ p { text-wrap: pretty; }
   font: inherit; font-size: 13px; border-radius: 10px; transition: border-color .2s, box-shadow .2s;
 }
 .field.tnum { font-size: 12.5px; }
-.field:focus { border-color: color-mix(in srgb, var(--accent) 60%, transparent); outline: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent); }
+.field { caret-color: var(--accent-2); }
+.field::placeholder { color: var(--faint); opacity: 1; }
+.field:focus { outline: none; }
+.field:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 38%, transparent); }
 select.field { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 28px; }
 input[type="range"].field { padding: 0; height: 20px; accent-color: var(--accent); background: transparent; border: 0; box-shadow: none; }
@@ -209,6 +213,9 @@ input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px;
     .act-primary, .act-ghost, .field, [aria-label="View"] button, [role="group"] > button { min-height: 44px; }
     .act { min-height: 44px; display: inline-flex; align-items: center; }
   }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; scroll-padding-top: 88px; -webkit-tap-highlight-color: transparent; scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  button, a, input, select, textarea, label, summary, [role="button"] { touch-action: manipulation; }
+  /* iOS zooms the page when an input under 16px takes focus */
+  @media (pointer: coarse) { .field, .field.tnum { font-size: 16px; } }
 }

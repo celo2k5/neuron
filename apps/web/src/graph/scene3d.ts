@@ -115,6 +115,8 @@ export class Scene3D {
     this.camera.position.set(9, 6.5, 19);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     Object.assign(this.controls, { enableDamping: true, dampingFactor: 0.06, enablePan: false, enableZoom: this.opts.zoom, autoRotate: this.opts.autoRotate && !this.reduced, autoRotateSpeed: 0.35, rotateSpeed: 0.5, minDistance: 6, maxDistance: 60 });
+    // OrbitControls claims every touch; give vertical swipes back to the page
+    this.renderer.domElement.style.touchAction = "pan-y";
     this.controls.minPolarAngle = Math.PI * 0.18;
     this.controls.maxPolarAngle = Math.PI * 0.82;
     this.scene.add(this.group);

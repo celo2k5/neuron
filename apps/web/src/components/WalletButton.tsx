@@ -17,11 +17,21 @@ export function WalletButton() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const on = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", on);
-    return () => document.removeEventListener("mousedown", on);
+    const on = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", on);
+    return () => document.removeEventListener("pointerdown", on);
   }, []);
+  // focus moves into the popover when it opens; Escape closes it and returns focus to the trigger
+  useEffect(() => {
+    if (!open) return;
+    requestAnimationFrame(() => panel.current?.querySelector<HTMLElement>("button:not(:disabled), a[href]")?.focus());
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); trigger.current?.focus(); } };
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [open]);
   const signedIn = s?.session && s.session.wallet === w.address;
   const run = async (fn: () => Promise<unknown>) => {
     setErr(null); setBusy(true);
@@ -30,18 +40,18 @@ export function WalletButton() {
 
   return (
     <div className="relative" ref={ref}>
-      <button className={signedIn ? "act-ghost tnum" : "act-primary"} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog" data-testid="wallet-button">
+      <button ref={trigger} className={signedIn ? "act-ghost tnum" : "act-primary"} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog" data-testid="wallet-button">
         {signedIn ? <><span className="dot text-good mr-1.5" />{short(w.address!)}</> : w.address ? "sign in" : <>connect<span className="hidden sm:inline"> wallet</span></>}
       </button>
       <AnimatePresence>
       {open && (
-        <motion.div role="dialog" aria-label="Wallet" className="panel absolute right-0 top-[calc(100%+10px)] z-50 w-[340px] max-w-[calc(100vw-32px)] origin-top-right !bg-bg/95 p-4 backdrop-blur-xl"
+        <motion.div ref={panel} role="dialog" aria-label="Wallet" className="panel absolute right-0 top-[calc(100%+10px)] z-50 w-[340px] max-w-[calc(100vw-32px)] origin-top-right !bg-bg/95 p-4 backdrop-blur-xl"
           initial={{ opacity: 0, scale: 0.94, y: -6 }} animate={{ opacity: 1, scale: 1, y: 0, transition: spring.ui }} exit={{ opacity: 0, scale: 0.97, y: -4, transition: exit }}>
           {!w.address ? (
             <>
               <div className="mb-3 text-[13px] font-medium">Choose a wallet</div>
               <ul className="flex flex-col gap-1">
-                {w.available.length === 0 && <li className="text-muted">No Solana wallet detected in this browser. Install Phantom, Solflare or Backpack{cfg?.cluster === "localnet" ? "" : ""}.</li>}
+                {w.available.length === 0 && <li className="text-muted">No Solana wallet detected in this browser. Install Phantom, Solflare or Backpack.</li>}
                 {w.available.map((a) => (
                   <li key={a.name}>
                     <button className="flex min-h-11 w-full items-center gap-2.5 rounded-xl border border-line px-3 py-2 text-left text-[13px] transition-colors hover:border-accent/60 hover:bg-accent/5 disabled:opacity-40" disabled={!a.ready || busy}
@@ -107,7 +117,7 @@ function DevTools({ address }: { address: string }) {
           catch (e) { setMsg((e as Error).message); }
         }}>mint test $NEURON</button>
       </div>
-      {msg && <p className="mt-1 text-[11.5px] text-muted">{msg}</p>}
+      <p aria-live="polite" className="mt-1 text-[11.5px] text-muted empty:hidden">{msg ?? ""}</p>
     </div>
   );
 }

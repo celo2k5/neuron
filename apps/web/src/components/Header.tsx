@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import { useConfig } from "@/lib/client/wallet";
@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { spring, exit } from "@/lib/client/motion";
 import { WalletButton } from "./WalletButton";
 import { Glyph } from "./Glyph";
+import { count } from "./ui";
 
 export const NAV = [
   { href: "/lab", label: "Lab" },
@@ -40,11 +41,11 @@ function NetworkStatus() {
   const { data } = useQuery({ queryKey: ["ready"], queryFn: () => api<{ ok: boolean; rpc: { ok: boolean; slot?: number; latencyMs: number } }>("/api/ready"), refetchInterval: 15_000 });
   const rpcOk = data?.rpc.ok;
   return (
-    <div className="hidden items-center gap-2.5 whitespace-nowrap text-[12px] md:flex" aria-label="Network status">
+    <div className="hidden items-center gap-2.5 whitespace-nowrap text-[12px] md:flex" role="group" aria-label="Network status">
       <ClusterPill />
       <span className={`hidden items-center gap-1.5 2xl:flex ${rpcOk ? "text-muted" : "text-bad"}`} title={rpcOk ? `RPC latency ${data?.rpc.latencyMs} ms · event stream ${stream}` : "RPC unreachable"}>
         <span className={`dot ${rpcOk && stream === "live" ? "text-good dot-live" : rpcOk ? "text-warn" : "text-bad"}`} />
-        <span className="tnum">{rpcOk ? `slot ${data?.rpc.slot?.toLocaleString()}` : data ? "RPC offline" : "…"}</span>
+        <span className="tnum">{rpcOk ? `slot ${count(data?.rpc.slot)}` : data ? "RPC offline" : "…"}</span>
       </span>
     </div>
   );
@@ -54,7 +55,14 @@ export function Header() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const menuBtn = useRef<HTMLButtonElement>(null);
   useEffect(() => setOpen(false), [path]);
+  useEffect(() => {
+    if (!open) return;
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); menuBtn.current?.focus(); } };
+    document.addEventListener("keydown", key);
+    return () => document.removeEventListener("keydown", key);
+  }, [open]);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 12);
     on();
@@ -84,7 +92,7 @@ export function Header() {
         <div className="ml-auto flex min-w-0 items-center gap-4">
           <NetworkStatus />
           <WalletButton />
-          <button className="act min-h-11 xl:hidden" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Menu"}</button>
+          <button ref={menuBtn} className="act min-h-11 xl:hidden" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Menu"}</button>
         </div>
       </div>
       <AnimatePresence>

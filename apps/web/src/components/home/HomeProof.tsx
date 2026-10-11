@@ -37,10 +37,11 @@ export function HomeProof() {
           <Reveal>
             <dl className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3">
               {cells.map(([k, v, href]) => (
-                <Link key={k} href={href} className="group block no-underline">
+                // dt first for assistive tech; the figure is drawn above its label; the link covers the cell
+                <div key={k} className="group relative flex flex-col-reverse">
+                  <dt className="mt-3 text-[13px] text-muted"><Link href={href} className="no-underline after:absolute after:inset-0 after:content-['']">{k}</Link></dt>
                   <dd className="font-serif-d text-[56px] font-light leading-none tracking-[-0.03em] tabular-nums transition-colors group-hover:text-accent-2"><CountUp value={v} /></dd>
-                  <dt className="mt-3 text-[13px] text-muted">{k}</dt>
-                </Link>
+                </div>
               ))}
             </dl>
           </Reveal>
@@ -56,7 +57,7 @@ export function HomeProof() {
                     </li>
                   ))}
                 </ul>
-              ) : <div className="mt-4"><Empty title={act.isLoading ? "Loading events" : "No events yet"}>Events appear as people generate models, run experiments and commit results.</Empty></div>}
+              ) : <div className="mt-4"><Empty title={act.isLoading ? "Loading events…" : "No events yet"}>Events appear as people generate models, run experiments and commit results.</Empty></div>}
             </div>
           </Reveal>
         </div>

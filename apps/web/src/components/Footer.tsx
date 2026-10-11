@@ -13,10 +13,19 @@ const NAME: Record<string, string> = { obsidian: "Obsidian", bio: "Bio", plasma:
 
 export function ThemeSwitcher() {
   const t = useTheme();
+  // radio-group keyboard pattern: one tab stop, arrow keys move and select
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    const i = (THEMES.findIndex((x) => x.id === t) + d + THEMES.length) % THEMES.length;
+    setTheme(THEMES[i].id);
+    requestAnimationFrame(() => e.currentTarget?.querySelector<HTMLElement>(`[data-theme-id="${THEMES[i].id}"]`)?.focus());
+  };
   return (
-    <div role="radiogroup" aria-label="Theme" className="flex flex-wrap gap-2">
+    <div role="radiogroup" aria-label="Theme" className="flex flex-wrap gap-2" onKeyDown={onKey}>
       {THEMES.map((th) => (
-        <button key={th.id} role="radio" aria-checked={t === th.id} onClick={() => setTheme(th.id)} title={th.note}
+        <button key={th.id} role="radio" data-theme-id={th.id} tabIndex={t === th.id ? 0 : -1} aria-checked={t === th.id} onClick={() => setTheme(th.id)} title={th.note}
           className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-[12.5px] transition-colors ${t === th.id ? "border-accent/60 bg-accent/10 text-fg" : "border-line text-muted hover:text-fg"}`}>
           <span className="relative h-5 w-5 overflow-hidden rounded-full" style={{ background: SWATCH[th.id][0], boxShadow: "inset 0 0 0 1px rgba(127,127,127,.35)" }}>
             <span className="absolute inset-[5px] rounded-full" style={{ background: SWATCH[th.id][1], boxShadow: `0 0 8px ${SWATCH[th.id][1]}` }} />

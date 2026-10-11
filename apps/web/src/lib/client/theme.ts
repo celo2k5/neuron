@@ -11,6 +11,11 @@ export const THEMES = [
 ] as const;
 export type ThemeId = (typeof THEMES)[number]["id"];
 const KEY = "neuron.theme";
+/** page background per theme, mirrored into <meta name="theme-color"> so browser chrome matches */
+const BG: Record<ThemeId, string> = { obsidian: "#080B12", bio: "#06110D", plasma: "#0E0616", solar: "#F5F1E8", mono: "#000000", abyss: "#040A19" };
+function syncThemeColor(t: ThemeId) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", BG[t] ?? BG.obsidian));
+}
 const listeners = new Set<() => void>();
 
 export function getTheme(): ThemeId {
@@ -19,6 +24,7 @@ export function getTheme(): ThemeId {
 }
 export function setTheme(t: ThemeId) {
   document.documentElement.dataset.theme = t;
+  syncThemeColor(t);
   try { localStorage.setItem(KEY, t); } catch { /* storage blocked: theme still applies for this visit */ }
   listeners.forEach((l) => l());
 }
@@ -27,7 +33,7 @@ export function useTheme(): ThemeId {
 }
 
 /** inline script for <head>: applies the stored theme before first paint (no flash) */
-export const themeBootScript = `try{var t=localStorage.getItem("${KEY}");if(t)document.documentElement.dataset.theme=t}catch(e){}`;
+export const themeBootScript = `try{var t=localStorage.getItem("${KEY}");if(t){document.documentElement.dataset.theme=t;var c=${JSON.stringify(BG)}[t];if(c)addEventListener("DOMContentLoaded",function(){document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){m.setAttribute("content",c)})})}}catch(e){}`;
 
 export interface ThemeColors { bg: string; surface: string; fg: string; muted: string; faint: string; line: string; accent: string; accent2: string; pos: string; neg: string; node: string; glow: string; warn: string; good: string; bad: string }
 export function readThemeColors(): ThemeColors {

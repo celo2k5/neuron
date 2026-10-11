@@ -447,9 +447,11 @@ export class GraphRenderer {
 
   private bind() {
     const cv = this.canvas;
-    cv.style.touchAction = "none";
+    // vertical swipes keep scrolling the page; horizontal drags pan the graph, two fingers zoom it
+    cv.style.touchAction = "pan-y";
     const pos = (e: PointerEvent | WheelEvent) => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-    cv.addEventListener("wheel", (e) => { e.preventDefault(); const p = pos(e); this.zoom(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
+    // a plain wheel scrolls the page; ctrl/⌘ + wheel (and trackpad pinch, which reports ctrlKey) zooms
+    cv.addEventListener("wheel", (e) => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const p = pos(e); this.zoom(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
     cv.addEventListener("pointerdown", (e) => { cv.setPointerCapture(e.pointerId); this.pointers.set(e.pointerId, pos(e)); this.dragging = true; this.moved = 0; });
     cv.addEventListener("pointermove", (e) => {
       const p = pos(e);

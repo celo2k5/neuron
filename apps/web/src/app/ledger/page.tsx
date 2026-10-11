@@ -17,7 +17,7 @@ export default function LedgerPage() {
   const { data: cfg } = useConfig();
   const q = useQuery({ queryKey: ["ledger"], queryFn: () => api<Ledger>("/api/ledger?limit=30") });
   const [id, setId] = useState("");
-  const v = useQuery({ queryKey: ["verify-tool", id], enabled: /^[0-9a-f-]{36}$/.test(id), queryFn: () => api<{ state: string; note: string; localHashesMatch?: boolean; chain?: { slot: string } | null }>(`/api/commitments/${id}`) });
+  const v = useQuery({ queryKey: ["verify-tool", id], enabled: /^[0-9a-f-]{36}$/i.test(id), queryFn: () => api<{ state: string; note: string; localHashesMatch?: boolean; chain?: { slot: string } | null }>(`/api/commitments/${id}`) });
   return (
     <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
       <Scramble as="h1" text="What was recorded, and where." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
@@ -44,7 +44,8 @@ export default function LedgerPage() {
         </Panel>
         <div className="flex min-w-0 flex-col gap-6">
           <Panel title="verify any experiment">
-            <input className="field tnum" placeholder="experiment uuid" value={id} onChange={(e) => setId(e.target.value.trim())} aria-label="Experiment id" />
+            <input className="field tnum" name="experiment-id" autoComplete="off" spellCheck={false} placeholder="60a1f955-90d5-4494-…" value={id} onChange={(e) => setId(e.target.value.trim().toLowerCase())} aria-label="Experiment id" aria-describedby="eid-hint" />
+            <p id="eid-hint" className="text-[12px] text-muted" aria-live="polite">{id && !/^[0-9a-f-]{36}$/.test(id) ? "Paste the full 36-character experiment id." : ""}</p>
             {v.isFetching && <div className="mt-2"><Spinner label="reading chain" /></div>}
             {v.error && <div className="mt-2"><ErrorBox error={v.error} /></div>}
             {v.data && <div className="mt-2 text-[12.5px]"><StatusPill status={v.data.state} /> {v.data.chain && <span className="tnum text-muted">slot {v.data.chain.slot}</span>}<p className="mt-1 text-muted">{v.data.note}</p></div>}

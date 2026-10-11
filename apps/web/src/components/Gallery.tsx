@@ -12,7 +12,7 @@ import { GraphCanvas } from "./GraphCanvas";
 import { LiftCard } from "./motion";
 import { AnimatePresence, motion } from "motion/react";
 import { spring, exit } from "@/lib/client/motion";
-import { Empty, ErrorBox, Hash, Reveal, Scramble, Skeleton, ago, fmt, short } from "./ui";
+import { Empty, ErrorBox, Hash, Reveal, Scramble, Skeleton, ago, count, fmt, short } from "./ui";
 
 export function Gallery() {
   const sp = useSearchParams();
@@ -47,7 +47,7 @@ export function Gallery() {
         <Link href="/generator" className="act-primary no-underline">generate a model</Link>
       </div>
       <div className="panel sticky z-20 mt-8 flex flex-wrap items-end gap-3 !bg-bg/80 p-3 backdrop-blur-xl" style={{ top: "calc(env(safe-area-inset-top, 0px) + 76px)" }} role="search">
-        <label className="flex min-w-[200px] flex-1 flex-col gap-1"><span className="label !text-[11px]">search name, seed or id</span><input className="field" value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. specimen" /></label>
+        <label className="flex min-w-[200px] flex-1 flex-col gap-1"><span className="label !text-[11px]">search name, seed or id</span><input className="field" type="search" name="q" autoComplete="off" spellCheck={false} value={q} onChange={(e) => setQ(e.target.value)} placeholder="specimen, genesis-010…" /></label>
         <label className="flex flex-col gap-1"><span className="label !text-[11px]">architecture</span>
           <select className="field" value={arch} onChange={(e) => setArch(e.target.value)}><option value="">all</option><option>feedforward</option><option>sparse</option><option>residual</option></select></label>
         <label className="flex flex-col gap-1"><span className="label !text-[11px]">training</span>
@@ -79,7 +79,7 @@ function Card({ m, i, selected, onCompare }: { m: ModelRow; i: number; selected:
   const [acts, setActs] = useState<number[][] | null>(null);
   return (
     <Reveal delay={(i % 4) * 60}>
-      <LiftCard className={selected ? "ring-1 ring-accent" : ""} onMouseEnter={() => setActs(forward(model, seededInput(m.seed, m.config.inputDim)).a.map((v) => Array.from(v)))}>
+      <LiftCard className={selected ? "ring-1 ring-accent" : ""} onMouseEnter={() => setActs(forward(model, seededInput(m.seed, m.config.inputDim)).a.map((v) => Array.from(v)))} onFocus={() => setActs((a) => a ?? forward(model, seededInput(m.seed, m.config.inputDim)).a.map((v) => Array.from(v)))}>
         <Link href={`/networks/${m.id}`} className="block no-underline" aria-label={`${m.name}, ${m.architecture}`}>
           <GraphCanvas model={model} form={m.presentation.form as VisualForm} palette={m.presentation.palette} activations={acts} interactive={false} labels={false} className="h-[220px]" edgeBudget={600} />
         </Link>
@@ -88,10 +88,10 @@ function Card({ m, i, selected, onCompare }: { m: ModelRow; i: number; selected:
             <Link href={`/networks/${m.id}`} className="truncate font-serif-d text-[19px] no-underline">{m.name}</Link>
             {m.trained ? <span className="pill text-good">trained</span> : <span className="pill text-faint">untrained</span>}
           </div>
-          <div className="mt-1 tnum text-[11.5px] text-muted">{m.architecture} · {[m.config.inputDim, ...m.config.hidden, m.config.outputDim].join("·")} · {m.param_count} params</div>
+          <div className="mt-1 tnum text-[11.5px] text-muted">{m.architecture} · {[m.config.inputDim, ...m.config.hidden, m.config.outputDim].join("·")} · {count(m.param_count)} params</div>
           <div className="mt-1 flex items-center justify-between text-[11.5px] text-faint">
             <span>{m.owner_wallet ? short(m.owner_wallet) : "anon"} · {ago(m.created_at)} · v{m.latest_version}</span>
-            <label className="flex items-center gap-1 text-muted"><input type="checkbox" checked={selected} onChange={onCompare} /> compare</label>
+            <label className="flex items-center gap-1 text-muted"><input type="checkbox" checked={selected} onChange={onCompare} aria-label={`Compare ${m.name}`} /> Compare</label>
           </div>
         </div>
       </LiftCard>
@@ -110,9 +110,9 @@ function Compare({ models, onClose }: { models: ModelRow[]; onClose: () => void 
     ["config hash", (m) => <Hash value={m.config_hash} />], ["v1 output", (_m, x) => (input ? `[${forward(x, input).output.map((v) => fmt(v, 3)).join(", ")}]` : "inputs differ")],
   ];
   return (
-    <motion.div initial={{ y: "100%" }} animate={{ y: 0, transition: spring.soft }} exit={{ y: "100%", transition: exit }} className="fixed inset-x-0 bottom-0 z-30 border-t border-accent/40 bg-bg/90 p-5 backdrop-blur-xl shadow-[0_-20px_60px_-30px_rgba(0,0,0,.7)]" role="region" aria-label="Model comparison">
+    <motion.div initial={{ y: "100%" }} animate={{ y: 0, transition: spring.soft }} exit={{ y: "100%", transition: exit }} className="fixed inset-x-0 bottom-0 z-30 max-h-[60svh] overflow-y-auto overscroll-contain border-t border-accent/40 bg-bg/90 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl shadow-[0_-20px_60px_-30px_rgba(0,0,0,.7)]" role="region" aria-label="Model comparison">
       <div className="mx-auto max-w-[1100px]">
-        <div className="flex items-center justify-between"><span className="label">compare {models.length === 1 ? "· pick one more" : ""}</span><button className="act" onClick={onClose}>close</button></div>
+        <div className="flex items-center justify-between"><span className="label">compare {models.length === 1 ? "· pick one more" : ""}</span><button className="act" onClick={onClose}>Close</button></div>
         <div className="mt-2 overflow-x-auto">
           <table className="w-full text-[12.5px] tnum">
             <tbody>{rows.map(([k, f]) => (

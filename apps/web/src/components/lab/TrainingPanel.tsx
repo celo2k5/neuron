@@ -31,7 +31,7 @@ export function TrainingPanel({ model, persistedModelId, onPreviewWeights, onLoa
   const set = <K extends keyof typeof opts>(k: K, v: (typeof opts)[K]) => setOpts((o) => ({ ...o, [k]: v }));
   const field = (k: "learningRate" | "epochs" | "batchSize" | "valFraction" | "samples", label: string, step: number, min: number, max: number) => (
     <label className="grid grid-cols-[86px_1fr] items-center gap-2"><span className="label !text-[11.5px]">{label}</span>
-      <input className="field tnum" type="number" step={step} min={min} max={max} value={opts[k]} onChange={(e) => set(k, Number(e.target.value))} /></label>
+      <input className="field tnum" name={k} autoComplete="off" inputMode="decimal" type="number" step={step} min={min} max={max} value={opts[k]} onChange={(e) => set(k, Number(e.target.value))} /></label>
   );
 
   return (
@@ -55,10 +55,10 @@ export function TrainingPanel({ model, persistedModelId, onPreviewWeights, onLoa
         {field("batchSize", "batch", 1, 1, TRAIN_LIMITS.maxBatch)}
         {field("valFraction", "val split", 0.05, 0.05, 0.5)}
         {field("samples", "samples", 20, 16, TRAIN_LIMITS.maxDataset)}
-        <div className="mt-1 flex gap-1" role="radiogroup" aria-label="Where to train">
+        <div className="mt-1 flex gap-1">
           <Segmented size="sm" label="Where to train" value={mode} onChange={setMode} options={[{ value: "preview", label: "browser preview" }, { value: "server", label: "train on neuron" }]} />
         </div>
-        {issues.length > 0 && <ul role="alert" className="text-[12.5px] text-bad">{issues.map((i) => <li key={i}>— {i}</li>)}</ul>}
+        <ul aria-live="polite" className="text-[12.5px] text-bad empty:hidden">{issues.map((i) => <li key={i}>{i}</li>)}</ul>
       </div>
       <div className="min-w-0">
         {mode === "preview"
@@ -127,7 +127,7 @@ function Metrics({ hist, baseline, epochs, cls }: { hist: { epoch: number; train
         <dt>before</dt><dd className="tnum text-warn">{baseline ? `${fmt(baseline.valLoss, 4)}${cls ? ` · ${(baseline.valAcc * 100).toFixed(1)}%` : ""}` : "—"}</dd>
         <dt>Δ val loss</dt><dd className="tnum">{baseline && last ? `${(((last.valLoss - baseline.valLoss) / baseline.valLoss) * 100).toFixed(1)}%` : "—"}</dd>
       </dl>
-      <div className="h-px bg-line md:col-span-2"><div className="h-px bg-accent transition-[width]" style={{ width: `${((last?.epoch ?? 0) / epochs) * 100}%` }} /></div>
+      <div className="h-px bg-line md:col-span-2"><div className="h-px origin-left bg-accent transition-transform duration-300" style={{ transform: `scaleX(${(last?.epoch ?? 0) / epochs})` }} /></div>
     </div>
   );
 }
@@ -139,33 +139,39 @@ function Server({ model, persistedModelId, dataset, opts, ds, disabled, onLoadVe
   const [jobId, setJobId] = useState<string | null>(null);
   const [err, setErr] = useState<unknown>(null);
   const [confirm, setConfirm] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [acting, setActing] = useState(false);
   const { data: t } = useTraining(jobId);
   const free = opts.epochs <= (cfg?.freeTrainingMaxEpochs ?? 0);
   if (!persistedModelId) return <p className="text-muted">Save this model first (Generator or “save model” above) so checkpoints can attach to it.</p>;
   if (!session.data?.session) return <p className="text-muted">Connect a wallet and sign in to run persisted training jobs. Public pages and browser previews need no wallet.</p>;
   const start = async () => {
-    setErr(null); setConfirm(false);
+    if (starting) return;
+    setErr(null); setStarting(true);
     try {
       const r = await api<{ id: string; cost: number }>("/api/training", { method: "POST", json: { modelId: persistedModelId, version: model.version, dataset, ...opts } });
-      setJobId(r.id); qc.invalidateQueries({ queryKey: ["session"] });
-    } catch (e) { setErr(e); }
+      setJobId(r.id); setConfirm(false); qc.invalidateQueries({ queryKey: ["session"] });
+    } catch (e) { setErr(e); } finally { setStarting(false); }
   };
   const act = async (a: "pause" | "cancel" | "resume") => {
+    if (acting) return;
+    setActing(true); setConfirmCancel(false);
     try {
       const r = await api<{ id?: string }>(`/api/training/${jobId}/${a}`, { method: "POST" });
       if (a === "resume" && r.id) setJobId(r.id);
       qc.invalidateQueries({ queryKey: ["training", jobId] });
-    } catch (e) { setErr(e); }
+    } catch (e) { setErr(e); } finally { setActing(false); }
   };
   return (
     <div className="flex flex-col gap-3">
       {!t && (
         <div className="flex flex-wrap items-center gap-3">
           {!confirm ? <button className="act-primary" disabled={disabled} onClick={() => setConfirm(true)} data-testid="server-train">train on neuron…</button> : (
-            <div className="border border-accent/60 p-2 text-[12.5px]" role="alertdialog" aria-label="Confirm training job">
+            <div className="rounded-xl border border-accent/60 p-3 text-[12.5px]" role="group" aria-label="Confirm training job">
               <p>Train <b>{model.id} v{model.version}</b> on <b>{dataset}</b> for {opts.epochs} epochs.</p>
               <p className="text-muted">{free ? `Free tier: up to ${cfg?.freeTrainingPerDay}/day at ≤ ${cfg?.freeTrainingMaxEpochs} epochs. If you have used today's free runs, credits are reserved first and unused credits are released if you cancel.` : "Above the free epoch cap: credits are reserved up front (exact amount shown in the result), and unused credits are released on cancel or failure."}</p>
-              <div className="mt-2 flex gap-3"><button className="act-primary" onClick={start} data-testid="confirm-train">confirm</button><button className="act" onClick={() => setConfirm(false)}>back</button></div>
+              <div className="mt-2 flex gap-3"><button autoFocus className="act-primary" disabled={starting} aria-busy={starting} onClick={start} data-testid="confirm-train">{starting ? "Starting…" : "Confirm"}</button><button className="act" disabled={starting} onClick={() => setConfirm(false)}>Back</button></div>
             </div>
           )}
         </div>
@@ -174,9 +180,11 @@ function Server({ model, persistedModelId, dataset, opts, ds, disabled, onLoadVe
         <>
           <div className="flex flex-wrap items-center gap-3 text-[12.5px]">
             <StatusPill status={t.status} /><span className="tnum text-muted">job {t.id.slice(0, 8)} · {t.credits_reserved} credits reserved</span>
-            {t.status === "running" && <><button className="act" onClick={() => act("pause")}>pause</button><button className="act" onClick={() => act("cancel")}>cancel</button></>}
-            {t.status === "queued" && <button className="act" onClick={() => act("cancel")}>cancel</button>}
-            {t.status === "paused" && <button className="act" onClick={() => act("resume")}>resume from checkpoint</button>}
+            {t.status === "running" && <button className="act" disabled={acting} onClick={() => act("pause")}>Pause</button>}
+            {(t.status === "running" || t.status === "queued") && (confirmCancel
+              ? <span className="inline-flex items-center gap-3" role="group" aria-label="Confirm cancel"><span className="text-warn">Stop this job? Unused credits are released.</span><button autoFocus className="act text-bad" disabled={acting} onClick={() => act("cancel")}>Stop job</button><button className="act" onClick={() => setConfirmCancel(false)}>Keep running</button></span>
+              : <button className="act" disabled={acting} onClick={() => setConfirmCancel(true)}>Cancel</button>)}
+            {t.status === "paused" && <button className="act" disabled={acting} onClick={() => act("resume")}>Resume from checkpoint</button>}
             {["completed", "cancelled", "failed"].includes(t.status) && <button className="act" onClick={() => setJobId(null)}>new job</button>}
           </div>
           <Metrics hist={t.history} baseline={t.baseline} epochs={t.options.epochs} cls={ds.task === "classification"} />
@@ -189,7 +197,7 @@ function Server({ model, persistedModelId, dataset, opts, ds, disabled, onLoadVe
                 <thead><tr className="text-left text-muted"><th className="font-normal">version</th><th className="font-normal">epoch</th><th className="font-normal">val loss</th><th className="font-normal">val acc</th><th className="font-normal">artifact</th><th /></tr></thead>
                 <tbody>{t.checkpoints.map((c) => (
                   <tr key={c.id} className="border-t border-line"><td>v{c.version}</td><td>{c.epoch}</td><td>{fmt(c.metrics.valLoss, 5)}</td><td>{c.metrics.valAcc !== undefined ? `${(c.metrics.valAcc * 100).toFixed(1)}%` : "—"}</td><td><Hash value={c.artifact_hash} n={5} /></td>
-                    <td className="text-right"><button className="act" onClick={() => onLoadVersion(c.version)}>load</button></td></tr>
+                    <td className="text-right"><button className="act" aria-label={`Load checkpoint v${c.version}`} onClick={() => onLoadVersion(c.version)}>Load</button></td></tr>
                 ))}</tbody>
               </table>
             )}

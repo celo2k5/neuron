@@ -8,7 +8,7 @@ import { api } from "@/lib/client/api";
 import { useExperiment, useModelArtifact, useModelDetail } from "@/lib/client/hooks";
 import { useConfig, useNeuronWallet, useSession } from "@/lib/client/wallet";
 import { GraphCanvas } from "./GraphCanvas";
-import { ErrorBox, Hash, Panel, Spinner, StatusPill, VectorBars, fmt, short } from "./ui";
+import { ErrorBox, Hash, Panel, Spinner, StatusPill, VectorBars, fmt, short, When } from "./ui";
 
 interface Verify {
   state: string; localHashesMatch?: boolean; note: string; hashes?: { resultHash: string; metadataHash: string; artifactHash: string };
@@ -66,7 +66,7 @@ export function ExperimentDetail({ id }: { id: string }) {
       <ol className="mt-4 flex flex-wrap gap-0 border border-line text-[12px]" aria-label="Pipeline">
         {["select version", "validate input", "execute", "record activations", "compute output", "persist", "render"].map((s, i) => {
           const done = e.status === "completed" || (e.status === "running" && i < 2) || (e.status === "failed" && i < 2);
-          return <li key={s} className={`flex-1 border-r border-line px-2 py-1.5 last:border-r-0 ${done ? "text-fg" : "text-faint"} ${e.status === "failed" && i === 2 ? "text-bad" : ""}`}><span className="tnum text-faint">{i + 1}</span> {s}</li>;
+          return <li key={s} className={`flex-1 border-r border-line px-2 py-1.5 last:border-r-0 ${done ? "text-fg" : "text-faint"} ${e.status === "failed" && i === 2 ? "text-bad" : ""}`}><span className="tnum text-faint">{i + 1}</span> {s}<span className="sr-only">{e.status === "failed" && i === 2 ? ", failed" : done ? ", done" : ", pending"}</span></li>;
         })}
       </ol>
       <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -82,8 +82,8 @@ export function ExperimentDetail({ id }: { id: string }) {
             <dt>input</dt><dd>{e.input_source}{e.input_seed ? ` · ${e.input_seed}` : ""}</dd>
             <dt>owner</dt><dd>{e.owner_wallet ? short(e.owner_wallet, 6) : "anonymous"}</dd>
             <dt>job</dt><dd className="tnum">{e.job_id?.slice(0, 8) ?? "—"}</dd>
-            <dt>created</dt><dd>{new Date(e.created_at).toISOString()}</dd>
-            <dt>completed</dt><dd>{e.completed_at ? new Date(e.completed_at).toISOString() : "—"}</dd>
+            <dt>created</dt><dd><When iso={e.created_at} /></dd>
+            <dt>completed</dt><dd><When iso={e.completed_at} /></dd>
             <dt>elapsed</dt><dd>{e.elapsed_ms !== null ? `${fmt(e.elapsed_ms, 3)} ms (server)` : "—"}</dd>
             <dt>result</dt><dd><Hash value={e.result_hash} /></dd>
             <dt>metadata</dt><dd><Hash value={e.metadata_hash} /></dd>
@@ -123,7 +123,7 @@ export function ExperimentDetail({ id }: { id: string }) {
                     isOwner ? <button className="act-primary mt-3" disabled={!!busy || !cfg?.programId} onClick={commit} data-testid="commit">{busy === "commit" ? "waiting for wallet…" : "commit hashes to solana"}</button>
                       : <p className="mt-2 text-faint">Only the experiment owner can commit it.</p>
                   )}
-                  <button className="act mt-3 block" onClick={() => verify.refetch()}>re-verify against chain</button>
+                  <button className="act mt-3 block" disabled={verify.isFetching} onClick={() => verify.refetch()}>{verify.isFetching ? "Re-verifying…" : "Re-verify against chain"}</button>
                 </div>
                 <dl className="kv text-[12.5px]">
                   <dt>cluster</dt><dd>{verify.data.cluster ?? cfg?.cluster}</dd>

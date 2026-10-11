@@ -24,6 +24,7 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
   const [save, setSave] = useState(false);
   const [err, setErr] = useState<unknown>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const session = useSession();
   useEffect(() => { setManual(Array.from({ length: dim }, (_, i) => (i % 2 ? "-0.5" : "0.5")).join(", ")); setDs(DATASETS.find((d) => d.inputDim === dim)?.id ?? ""); }, [dim]);
 
@@ -38,7 +39,7 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
     const v = parts.map(Number);
     if (parts.length !== dim) return { error: `Enter exactly ${dim} numbers (you entered ${parts.length}).` };
     const bad = v.findIndex((x) => !Number.isFinite(x));
-    if (bad >= 0) return { error: `Value ${bad + 1} ("${parts[bad]}") is not a number.` };
+    if (bad >= 0) return { error: `Value ${bad + 1} (“${parts[bad]}”) is not a number.` };
     if (v.some((x) => Math.abs(x) > 1e6)) return { error: "Values must be within ±1,000,000." };
     return { v };
   }, [source, manual, seed, ds, sample, dim]);
@@ -46,7 +47,8 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
   const canSave = !!persistedModelId && configIssues(model.config).length === 0;
   const run = async () => {
     setErr(null);
-    if (!parsed.v) return;
+    if (!parsed.v || busy) return;
+    setBusy(true);
     try {
       const local = runExperiment(model, parsed.v);
       let id: string | undefined;
@@ -55,7 +57,7 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
         id = r.id; setSavedId(r.id);
       }
       onRun({ local, savedId: id });
-    } catch (e) { setErr(e); }
+    } catch (e) { setErr(e); } finally { setBusy(false); }
   };
 
   return (
@@ -63,8 +65,8 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
       <div>
         <Segmented label="Input source" value={source} onChange={setSource} options={(["seeded", "manual", "dataset"] as Source[]).map((s) => ({ value: s, label: s }))} />
       </div>
-      {source === "manual" && <textarea aria-label={`Input vector, ${dim} numbers`} className="field tnum min-h-[52px]" value={manual} onChange={(e) => setManual(e.target.value)} data-testid="manual-input" />}
-      {source === "seeded" && <input aria-label="Input seed" className="field tnum" value={seed} onChange={(e) => setSeed(e.target.value || "0")} />}
+      {source === "manual" && <textarea aria-label={`Input vector, ${dim} numbers`} name="input-vector" autoComplete="off" spellCheck={false} className="field tnum min-h-[52px]" value={manual} onChange={(e) => setManual(e.target.value)} data-testid="manual-input" />}
+      {source === "seeded" && <input aria-label="Input seed" name="input-seed" autoComplete="off" spellCheck={false} className="field tnum" value={seed} onChange={(e) => setSeed(e.target.value || "0")} />}
       {source === "dataset" && (
         <div className="grid grid-cols-[1fr_80px] gap-1">
           <select aria-label="Dataset" className="field" value={ds} onChange={(e) => setDs(e.target.value)} disabled={!compatible.length}>
@@ -74,12 +76,12 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
         </div>
       )}
       {parsed.v && <VectorBars values={parsed.v} height={20} color="var(--accent-2)" />}
-      {parsed.error && <p role="alert" className="text-bad text-[12.5px]">{parsed.error}</p>}
+      <p aria-live="polite" className="text-bad text-[12.5px] empty:hidden">{parsed.error ?? ""}</p>
       <label className="flex items-center gap-2 text-[12.5px] text-muted">
         <input type="checkbox" checked={save && canSave} disabled={!canSave} onChange={(e) => setSave(e.target.checked)} data-testid="save-experiment" />
         save to the experiment record {!persistedModelId ? "(save the model first)" : session.data?.session ? "" : "(anonymous; limited)"}
       </label>
-      <button className="act-primary" disabled={!parsed.v} onClick={run} data-testid="run-experiment">execute ▸</button>
+      <button className="act-primary" disabled={!parsed.v || busy} aria-busy={busy} onClick={run} data-testid="run-experiment">{busy ? "Executing…" : "Execute ▸"}</button>
       <ErrorBox error={err} />
       {savedId && <SavedRun id={savedId} />}
     </div>
@@ -115,7 +117,6 @@ export function ResultView({ r }: { r: ExperimentRecord }) {
           <dt>config</dt><dd><Hash value={r.configHash} /></dd>
           <dt>artifact</dt><dd><Hash value={r.artifactHash} /></dd>
           <dt>result</dt><dd><Hash value={r.resultHash} /></dd>
-          <dt>time</dt><dd>{new Date().toISOString().slice(11, 19)}Z</dd>
         </dl>
       </div>
       <div>

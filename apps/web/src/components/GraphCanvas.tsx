@@ -33,16 +33,22 @@ export const GraphCanvas = forwardRef<GraphHandle, Props>(function GraphCanvas(
   actsRef.current = activations ?? null;
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const cvRef = useRef<HTMLCanvasElement | null>(null);
+  const modelRef = useRef(model);
+  modelRef.current = model;
+  // what keyboard selection landed on, for screen readers (the canvas itself is silent)
+  const [said, setSaid] = useState("");
 
   useEffect(() => {
     const cv = document.createElement("canvas");
-    cv.className = "absolute inset-0 h-full w-full outline-none";
+    cv.className = "absolute inset-0 h-full w-full";
     cv.setAttribute("role", "img");
+    cvRef.current = cv;
     holder.current!.prepend(cv);
     r.current = new GraphRenderer(cv, readThemeColors(), {
       interactive, labels, edgeBudget,
       onHover: (h, p) => setTip(h && p ? { h, ...p } : null),
-      onSelect: (h) => onSelectRef.current?.(h),
+      onSelect: (h) => { onSelectRef.current?.(h); setSaid(describe(modelRef.current, h)); },
     });
     return () => { r.current?.destroy(); r.current = null; cv.remove(); };
   }, [interactive, labels, edgeBudget]);
@@ -61,23 +67,37 @@ export const GraphCanvas = forwardRef<GraphHandle, Props>(function GraphCanvas(
   }), []);
 
   const G = model ? graphOf(model) : null;
-  const label = ariaLabel ?? (model && G ? `${model.config.name}: ${model.config.architecture} network, ${G.nodes.length} neurons, ${G.edges.length} connections, ${form.toLowerCase()} view. Use arrow keys to move between neurons, plus and minus to zoom, 0 to fit.` : "network");
+  const label = ariaLabel ?? (model && G ? `${model.config.name}: ${model.config.architecture} network, ${G.nodes.length} neurons, ${G.edges.length} connections, ${form.toLowerCase()} view.${interactive ? " Use arrow keys to move between neurons, plus and minus to zoom, 0 to fit." : ""}` : "Network");
+  useEffect(() => { cvRef.current?.setAttribute("aria-label", label); }, [label]);
 
   return (
-    <div ref={holder} className={`${/\babsolute\b/.test(className) ? "" : "relative "}overflow-hidden ${className}`} aria-label={label}>
+    <div ref={holder} className={`${/\babsolute\b/.test(className) ? "" : "relative "}overflow-hidden ${className}`}>
+      {interactive && <p className="sr-only" aria-live="polite">{said}</p>}
       {toolbar && interactive && (
         <div className="absolute right-2 top-2 z-10 flex gap-1">
-          {[["+", () => r.current?.zoom(1.25), "zoom in"], ["−", () => r.current?.zoom(0.8), "zoom out"], ["fit", () => r.current?.fit(), "fit to view"]].map(([t, f, l]) => (
+          {[["+", () => r.current?.zoom(1.25), "Zoom in"], ["−", () => r.current?.zoom(0.8), "Zoom out"], ["Fit", () => r.current?.fit(), "Fit to view"]].map(([t, f, l]) => (
             <button key={t as string} aria-label={l as string} onClick={f as () => void} className="act-ghost">{t as string}</button>
           ))}
         </div>
       )}
-      {tip && model && G && <Tooltip model={model} hit={tip.h} x={tip.x} y={tip.y} acts={actsRef.current} />}
+      {tip && model && G && <Tooltip model={model} hit={tip.h} x={tip.x} y={tip.y} acts={actsRef.current} flip={tip.x > (holder.current?.clientWidth ?? 0) - 260} />}
     </div>
   );
 });
 
-function Tooltip({ model, hit, x, y, acts }: { model: Model; hit: Hit; x: number; y: number; acts: number[][] | null }) {
+function describe(model: Model | null, hit: Hit): string {
+  if (!model || !hit) return "";
+  const G = graphOf(model);
+  if (hit.type === "node") {
+    const n = G.nodes[hit.g];
+    const where = n.layer === 0 ? "input" : n.layer === G.layerSize.length - 1 ? "output" : `hidden layer ${n.layer}`;
+    return `Neuron ${n.layer}.${n.index}, ${where}, ${n.degIn} in, ${n.degOut} out`;
+  }
+  const e = G.edges[hit.e], s = G.nodes[e.s], t = G.nodes[e.t];
+  return `Connection ${s.layer}.${s.index} to ${t.layer}.${t.index}, weight ${fmt(e.w, 4)}`;
+}
+
+function Tooltip({ model, hit, x, y, acts, flip }: { model: Model; hit: Hit; x: number; y: number; acts: number[][] | null; flip: boolean }) {
   const G = graphOf(model);
   if (!hit) return null;
   let body: React.ReactNode;
@@ -108,7 +128,7 @@ function Tooltip({ model, hit, x, y, acts }: { model: Model; hit: Hit; x: number
     );
   }
   return (
-    <div className="pointer-events-none absolute z-20 w-[230px] border border-line bg-bg/95 p-2 text-[12px]" style={{ left: Math.min(x + 14, 9999), top: y + 14, transform: x > 600 ? "translateX(-110%)" : undefined }}>
+    <div className="pointer-events-none absolute z-20 w-[230px] rounded-xl border border-line bg-bg/95 p-2.5 text-[12px] shadow-[0_12px_32px_-12px_rgba(0,0,0,.6)]" style={{ left: Math.min(x + 14, 9999), top: y + 14, transform: flip ? "translateX(calc(-100% - 28px))" : undefined }}>
       {body}
     </div>
   );

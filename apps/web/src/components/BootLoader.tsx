@@ -29,6 +29,8 @@ export function BootLoader() {
     const t = setInterval(() => setShown((s) => (s >= 64 ? (clearInterval(t), 64) : s + 2)), 22);
     return () => clearInterval(t);
   }, [facts]);
+  // any key dismisses it, so keyboard focus never travels under the overlay
+  useEffect(() => { if (state !== "boot") return; const k = () => setState("out"); window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [state]);
   useEffect(() => { if (state === "out") { const t = setTimeout(() => setState("done"), 900); return () => clearTimeout(t); } }, [state]);
   if (state === "done") return null;
   const glyphs = "0123456789abcdef";
@@ -38,7 +40,7 @@ export function BootLoader() {
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-[120px]" />
       <div className="relative w-[min(560px,calc(100vw-40px))] text-center">
         <div className="rise font-serif-d text-[72px] font-light leading-none tracking-[-0.03em] sm:text-[96px]">Neuron</div>
-        <div className="rise mx-auto mt-8 h-px w-48 overflow-hidden bg-line [animation-delay:.2s]"><div className="h-px bg-[linear-gradient(90deg,transparent,var(--accent-2),transparent)] transition-[width] duration-200" style={{ width: `${(shown / 64) * 100}%` }} /></div>
+        <div className="rise mx-auto mt-8 h-px w-48 overflow-hidden bg-line [animation-delay:.2s]"><div className="h-px origin-left bg-[linear-gradient(90deg,transparent,var(--accent-2),transparent)] transition-transform duration-200" style={{ transform: `scaleX(${shown / 64})` }} /></div>
         {facts && (
           <div className="rise mt-8 space-y-3 [animation-delay:.35s]">
             <p className="text-[13px] text-muted">Generating specimen <span className="tnum text-fg">{HERO_CONFIG.seed}</span> · {facts.neurons} neurons · {facts.edges} connections · {facts.params} parameters · {facts.ms} ms</p>

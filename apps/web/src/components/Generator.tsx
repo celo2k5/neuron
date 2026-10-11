@@ -26,7 +26,7 @@ function Histogram({ model }: { model: Model }) {
   return (
     <div>
       <div className="flex h-[70px] items-end gap-px" role="img" aria-label={`Weight distribution of ${ws.length} weights, mean ${mean.toFixed(3)}, sd ${sd.toFixed(3)}`}>
-        {bins.map((b, i) => <div key={i} className="flex-1 transition-[height] duration-500" style={{ height: `${(b / top) * 100}%`, background: i < B / 2 ? "var(--neg)" : "var(--pos)", opacity: 0.8 }} />)}
+        {bins.map((b, i) => <div key={i} className="h-full flex-1 origin-bottom transition-transform duration-500" style={{ transform: `scaleY(${b / top})`, background: i < B / 2 ? "var(--neg)" : "var(--pos)", opacity: 0.8 }} />)}
       </div>
       <div className="mt-1 flex justify-between text-[11.5px] text-muted tnum"><span>−{mx.toFixed(2)}</span><span>μ {mean.toFixed(3)} · σ {sd.toFixed(3)}</span><span>+{mx.toFixed(2)}</span></div>
     </div>
@@ -91,12 +91,12 @@ export function Generator() {
           <p className="mt-2 max-w-[70ch] text-muted">The same seed, configuration and engine version always reproduce the same topology, weights and hash. Change any input and you get a different model, not a recoloured one.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button className="act" onClick={() => setDraft(draftFromSeed(Math.random().toString(36).slice(2, 10), draft.form))}>surprise me</button>
+          <button className="act" onClick={() => setDraft(draftFromSeed(Math.random().toString(36).slice(2, 10), draft.form))}>Surprise me</button>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])} />
           <button className="act" onClick={() => fileRef.current?.click()}>Import JSON</button>
           <button className="act" disabled={!model} onClick={exportJson}>Export JSON</button>
-          <button className="act-ghost" disabled={!model || busy} onClick={() => save(false)}>save</button>
-          <button className="act-primary" disabled={!model || busy} onClick={() => save(true)} data-testid="save-and-open">save & open in lab</button>
+          <button className="act-ghost" disabled={!model || !!busy} aria-busy={!!busy} onClick={() => save(false)}>{busy ? "Saving…" : "Save"}</button>
+          <button className="act-primary" disabled={!model || !!busy} aria-busy={!!busy} onClick={() => save(true)} data-testid="save-and-open">{busy ? "Saving…" : "Save & open in lab"}</button>
         </div>
       </div>
       <ErrorBox error={err} />

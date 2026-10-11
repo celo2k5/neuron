@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { Segmented } from "../motion";
+import { NumberField, ReseedIcon } from "../ui";
 import {
   ACTIVATIONS, ARCHITECTURES, INITS, LIMITS, VISUAL_FORMS, configIssues, suggestActivations, suggestWidths,
   type Activation, type Architecture, type ModelConfig, type OutputActivation, type VisualForm, type WeightInit,
@@ -53,15 +54,15 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
   const [local, setLocal] = useState(draft.widths);
   useEffect(() => setLocal(draft.widths), [draft.widths]);
   const num = (k: "inputDim" | "outputDim" | "layers" | "minW" | "maxW", max: number) => (
-    <input id={`f-${k}`} className="field tnum" type="number" min={1} max={max} value={draft[k]} onChange={(e) => set(k, Math.max(1, Math.min(max, Number(e.target.value) || 1)))} />
+    <NumberField id={`f-${k}`} name={k} min={1} max={max} value={draft[k]} onCommit={(v) => set(k, v)} />
   );
   return (
     <div className="flex flex-col gap-2" data-testid="config-form">
-      <Row label="name" htmlFor="f-name"><input id="f-name" className="field" maxLength={48} value={draft.name} onChange={(e) => set("name", e.target.value)} /></Row>
+      <Row label="name" htmlFor="f-name"><input id="f-name" name="name" autoComplete="off" className="field" maxLength={48} value={draft.name} onChange={(e) => set("name", e.target.value)} /></Row>
       <Row label="seed" htmlFor="f-seed">
         <div className="flex gap-1">
-          <input id="f-seed" className="field tnum" maxLength={64} value={draft.seed} onChange={(e) => set("seed", e.target.value || "0")} data-testid="seed-input" />
-          <button type="button" className="act-ghost" title="New random seed" aria-label="New random seed" onClick={() => set("seed", randomSeed())}>⟳</button>
+          <input id="f-seed" name="seed" autoComplete="off" spellCheck={false} className="field tnum" maxLength={64} value={draft.seed} onChange={(e) => set("seed", e.target.value || "0")} data-testid="seed-input" />
+          <button type="button" className="act-ghost" title="New random seed" aria-label="New random seed" onClick={() => set("seed", randomSeed())}><ReseedIcon /></button>
         </div>
       </Row>
       <Row label="architecture" htmlFor="f-arch">
@@ -77,7 +78,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
         <Mini label="outputs" htmlFor="f-outputDim">{num("outputDim", LIMITS.maxWidth)}</Mini>
       </div>
       <Row label="widths">
-        <div className="flex gap-1" role="radiogroup" aria-label="Width mode">
+        <div className="flex gap-1">
           <Segmented size="sm" label="Width mode" value={draft.widthMode} onChange={(v) => set("widthMode", v)} options={[{ value: "seeded", label: "seeded" }, { value: "manual", label: "manual" }]} />
         </div>
       </Row>
@@ -89,7 +90,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
         </div>
       ) : (
         <Row label="hidden" htmlFor="f-widths" hint="comma-separated widths, e.g. 8,8,6">
-          <input id="f-widths" className="field tnum" value={local} onChange={(e) => setLocal(e.target.value)} onBlur={() => set("widths", local)} onKeyDown={(e) => e.key === "Enter" && set("widths", local)} />
+          <input id="f-widths" name="widths" autoComplete="off" spellCheck={false} placeholder="8, 8, 6…" className="field tnum" value={local} onChange={(e) => setLocal(e.target.value)} onBlur={() => set("widths", local)} onKeyDown={(e) => e.key === "Enter" && set("widths", local)} />
         </Row>
       )}
       <Row label="activations">
@@ -127,7 +128,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
       )}
       <div className="mt-1 border-t border-line pt-2 text-[12px]">
         <div className="tnum text-muted">resolved · {[cfg.inputDim, ...cfg.hidden, cfg.outputDim].join("·")} · {cfg.activations.join(", ")} → {cfg.outputActivation}</div>
-        {issues.length > 0 && <ul role="alert" className="mt-1 text-bad">{issues.map((i) => <li key={i}>— {i}</li>)}</ul>}
+        <ul aria-live="polite" className="mt-1 text-bad empty:hidden">{issues.map((i) => <li key={i}>{i}</li>)}</ul>
       </div>
     </div>
   );

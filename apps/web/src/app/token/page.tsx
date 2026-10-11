@@ -4,12 +4,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import { useConfig, useNeuronWallet, useSession } from "@/lib/client/wallet";
 import { explorerTx } from "@/components/ExperimentDetail";
-import { Empty, ErrorBox, Panel, Scramble, Spinner, StatusPill, ago, short } from "@/components/ui";
+import { Empty, ErrorBox, NumberField, Panel, Scramble, Spinner, StatusPill, When, ago, count, short } from "@/components/ui";
 
 interface Token { cluster: string; mint: string; decimals: number; tokenProgram: string; balance: { amount: string; uiAmount: string; ata: string } | null }
 interface Intent { id: string; credits: number; amount: string; status: string; signature: string | null; failure_reason: string | null; created_at: string; expires_at: string }
 
-const ui = (base: string, d: number) => { const b = BigInt(base), k = 10n ** BigInt(d); const f = (b % k).toString().padStart(d, "0").replace(/0+$/, ""); return `${b / k}${f ? "." + f : ""}`; };
+const grouped = new Intl.NumberFormat();
+/** exact base-unit amount → display amount; integer part grouped (12,500.25), no float rounding */
+const ui = (base: string, d: number) => { const b = BigInt(base), k = 10n ** BigInt(d); const f = (b % k).toString().padStart(d, "0").replace(/0+$/, ""); return `${grouped.format(b / k)}${f ? "." + f : ""}`; };
 
 export default function TokenPage() {
   const { data: cfg } = useConfig();
@@ -62,7 +64,7 @@ export default function TokenPage() {
         <Panel title="credits">
           {!session.data?.session ? <p className="text-muted">Sign in to see credits.</p> : credits.data && (
             <dl className="grid grid-cols-2 gap-3">
-              {(["available", "reserved", "consumed", "refunded"] as const).map((k) => <div key={k}><dt className="label">{k}</dt><dd className="display text-[32px] tnum">{credits.data.balance[k]}</dd></div>)}
+              {(["available", "reserved", "consumed", "refunded"] as const).map((k) => <div key={k}><dt className="label">{k}</dt><dd className="display text-[32px] tnum">{count(credits.data.balance[k])}</dd></div>)}
             </dl>
           )}
           <p className="mt-2 text-[12px] text-muted">Free daily: {cfg?.freeExperimentsPerDay} saved experiments, {cfg?.freeTrainingPerDay} training jobs ≤ {cfg?.freeTrainingMaxEpochs} epochs. Registration: {cfg?.registrationCredits} credits.</p>
@@ -70,22 +72,22 @@ export default function TokenPage() {
         <Panel title="buy credits" meta={`1 credit = ${price} $NEURON`}>
           {!session.data?.session ? <p className="text-muted">Sign in first.</p> : !review ? (
             <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2"><span className="label">credits</span><input className="field tnum !w-[100px]" type="number" min={1} max={10000} value={n} onChange={(e) => setN(Math.max(1, Math.min(10000, Number(e.target.value) || 1)))} /></label>
+              <label className="flex items-center gap-2"><span className="label">credits</span><NumberField name="credits" className="field tnum !w-[110px]" min={1} max={10000} value={n} onCommit={setN} /></label>
               <div className="tnum text-muted">total {cfg && tok.data ? ui((BigInt(cfg.creditPriceBaseUnits) * BigInt(n)).toString(), d) : "…"} $NEURON</div>
-              <button className="act-primary" disabled={busy || !!cfg?.blockers.length} onClick={createIntent} data-testid="create-intent">review payment</button>
+              <button className="act-primary" disabled={busy || !!cfg?.blockers.length} aria-busy={busy} onClick={createIntent} data-testid="create-intent">{busy ? "Preparing…" : "Review payment"}</button>
             </div>
           ) : (
-            <div className="border border-accent/60 p-2 text-[12.5px]" role="alertdialog" aria-label="Review payment" data-testid="payment-review">
+            <div className="rounded-xl border border-accent/60 p-3 text-[12.5px]" role="group" aria-label="Review payment" data-testid="payment-review">
               <dl className="kv">
                 <dt>you pay</dt><dd className="text-accent">{review.display.amount} {review.display.symbol}</dd>
                 <dt>you get</dt><dd>{review.credits} credits</dd>
                 <dt>to</dt><dd className="break-all">{short(review.intent.recipientOwner, 6)} (treasury)</dd>
                 <dt>mint</dt><dd>{short(review.intent.mint, 6)}</dd>
                 <dt>cluster</dt><dd>{review.display.cluster}</dd>
-                <dt>expires</dt><dd>{new Date(review.intent.expiresAt).toLocaleTimeString()}</dd>
+                <dt>expires</dt><dd><When iso={review.intent.expiresAt} /></dd>
               </dl>
               <p className="mt-2 text-muted">Your wallet will show the exact transfer. Credits are issued only after the server independently verifies the confirmed transaction.</p>
-              <div className="mt-2 flex gap-3"><button className="act-primary" disabled={busy} onClick={pay} data-testid="approve-payment">{busy ? "waiting for wallet…" : "approve in wallet"}</button><button className="act" onClick={() => setReview(null)}>cancel</button></div>
+              <div className="mt-2 flex gap-3"><button autoFocus className="act-primary" disabled={busy} aria-busy={busy} onClick={pay} data-testid="approve-payment">{busy ? "Waiting for wallet…" : "Approve in wallet"}</button><button className="act" disabled={busy} onClick={() => setReview(null)}>Cancel</button></div>
             </div>
           )}
           <ErrorBox error={err} />

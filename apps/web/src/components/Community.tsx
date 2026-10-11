@@ -38,7 +38,7 @@ export function Community() {
             <div className="panel relative min-h-[480px] overflow-hidden">
               {compiled && <Specimen3D model={compiled.model} activations={acts} className="absolute inset-0" framing={0.7} ariaLabel="Three-dimensional view of the community network" />}
               <div className="glass-chip absolute bottom-4 left-4 z-10 flex items-center gap-2 p-2">
-                <input aria-label="Input seed" className="field !w-[140px] tnum" value={seed} onChange={(e) => setSeed(e.target.value)} />
+                <input aria-label="Input seed" name="input-seed" autoComplete="off" spellCheck={false} className="field !w-[140px] tnum" value={seed} onChange={(e) => setSeed(e.target.value)} />
                 <button className="act-ghost" onClick={run} data-testid="community-run">Run v{s.version.version}</button>
               </div>
             </div>
@@ -108,11 +108,11 @@ function NeuronFields({ v, set }: { v: { layer: 1 | 2; bias: number; seed: strin
       <label className="flex flex-col gap-1"><span className="label !text-[11px]">layer</span>
         <select className="field" value={v.layer} onChange={(e) => set({ ...v, layer: Number(e.target.value) as 1 | 2 })}><option value={1}>L1 hidden</option><option value={2}>L2 hidden</option></select></label>
       <label className="flex flex-col gap-1"><span className="label !text-[11px]">bias [−2, 2]</span>
-        <input className="field tnum" type="number" step={0.05} min={-2} max={2} value={v.bias} onChange={(e) => set({ ...v, bias: Number(e.target.value) })} /></label>
+        <input className="field tnum" name="bias" inputMode="decimal" type="number" step={0.05} min={-2} max={2} value={v.bias} onChange={(e) => set({ ...v, bias: Number(e.target.value) })} /></label>
       <label className="flex flex-col gap-1"><span className="label !text-[11px]">weight seed</span>
-        <input className="field tnum" maxLength={64} value={v.seed} onChange={(e) => set({ ...v, seed: e.target.value })} /></label>
+        <input className="field tnum" name="weight-seed" autoComplete="off" spellCheck={false} maxLength={64} value={v.seed} onChange={(e) => set({ ...v, seed: e.target.value })} /></label>
       <label className="flex flex-col gap-1"><span className="label !text-[11px]">scale (0, 2]</span>
-        <input className="field tnum" type="number" step={0.05} min={0.05} max={2} value={v.scale} onChange={(e) => set({ ...v, scale: Number(e.target.value) })} /></label>
+        <input className="field tnum" name="scale" inputMode="decimal" type="number" step={0.05} min={0.05} max={2} value={v.scale} onChange={(e) => set({ ...v, scale: Number(e.target.value) })} /></label>
     </div>
   );
 }
@@ -143,12 +143,12 @@ function Register() {
         <div className="flex flex-col gap-3" data-testid="register-neuron">
           <NeuronFields v={v} set={setV} />
           {!confirm ? <button className="act-primary" disabled={busy} onClick={() => setConfirm(true)}>register…</button> : (
-            <div className="border border-accent/60 p-2 text-[12.5px]" role="alertdialog" aria-label="Confirm registration">
+            <div className="rounded-xl border border-accent/60 p-3 text-[12.5px]" role="group" aria-label="Confirm registration">
               Registration consumes <b>{cfg?.registrationCredits} credits</b> and asks your wallet to sign a message binding exactly these parameters. No tokens move in this step.
-              <div className="mt-2 flex gap-3"><button className="act-primary" onClick={submit} data-testid="confirm-register">sign & register</button><button className="act" onClick={() => setConfirm(false)}>back</button></div>
+              <div className="mt-2 flex gap-3"><button autoFocus className="act-primary" disabled={busy} onClick={submit} data-testid="confirm-register">Sign &amp; register</button><button className="act" onClick={() => setConfirm(false)}>Back</button></div>
             </div>
           )}
-          {busy && <Spinner label="waiting for signature" />}
+          {busy && <Spinner label="Waiting for signature" />}
           {ok && <p className="text-good" role="status">{ok}</p>}
           <ErrorBox error={err} />
         </div>
@@ -162,20 +162,32 @@ function MyNeuron({ n }: { n: CommunityNeuron }) {
   const qc = useQueryClient();
   const [v, setV] = useState({ layer: n.layer, bias: n.bias, seed: n.seed, scale: n.scale });
   const [err, setErr] = useState<unknown>(null);
+  const [busy, setBusy] = useState<"save" | "retire" | null>(null);
+  const [confirmRetire, setConfirmRetire] = useState(false);
   const save = async () => {
-    setErr(null);
+    if (busy) return;
+    setErr(null); setBusy("save");
     try {
       const signed = await sign({ intent: "update-neuron", neuron: v, neuronId: n.id });
       await api(`/api/community/neurons/${n.id}`, { method: "PATCH", json: { neuron: v, signed } });
       qc.invalidateQueries({ queryKey: ["community"] });
-    } catch (e) { setErr(e); }
+    } catch (e) { setErr(e); } finally { setBusy(null); }
   };
-  const retire = async () => { setErr(null); try { await api(`/api/community/neurons/${n.id}`, { method: "DELETE" }); qc.invalidateQueries({ queryKey: ["community"] }); } catch (e) { setErr(e); } };
+  const retire = async () => {
+    if (busy) return;
+    setErr(null); setBusy("retire"); setConfirmRetire(false);
+    try { await api(`/api/community/neurons/${n.id}`, { method: "DELETE" }); qc.invalidateQueries({ queryKey: ["community"] }); } catch (e) { setErr(e); } finally { setBusy(null); }
+  };
   return (
     <div className="mb-3 border-b border-line pb-3 last:mb-0 last:border-0 last:pb-0">
       <div className="mb-2 flex items-center justify-between"><span className="tnum">{n.id}</span><StatusPill status="active" /></div>
       <NeuronFields v={v} set={(x) => setV({ ...x, layer: n.layer })} />
-      <div className="mt-2 flex gap-3"><button className="act" onClick={save}>sign & update</button><button className="act" onClick={retire}>retire</button></div>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <button className="act" disabled={!!busy} aria-busy={busy === "save"} onClick={save}>{busy === "save" ? "Waiting for signature…" : "Sign & update"}</button>
+        {confirmRetire
+          ? <span className="inline-flex flex-wrap items-center gap-3" role="group" aria-label={`Confirm retiring ${n.id}`}><span className="text-warn">Retire {n.id}? The network gets a new version without it.</span><button autoFocus className="act text-bad" onClick={retire}>Retire neuron</button><button className="act" onClick={() => setConfirmRetire(false)}>Keep it</button></span>
+          : <button className="act" disabled={!!busy} onClick={() => setConfirmRetire(true)}>{busy === "retire" ? "Retiring…" : "Retire"}</button>}
+      </div>
       <ErrorBox error={err} />
     </div>
   );

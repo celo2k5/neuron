@@ -32,13 +32,15 @@ export function ModelDetail({ id }: { id: string }) {
   const shownForm = form ?? (m?.presentation.form as VisualForm) ?? "CONSTELLATION";
   const acts = useMemo(() => (art.data ? forward(art.data, seededInput(art.data.config.seed, art.data.config.inputDim)).a.map((x) => Array.from(x)) : null), [art.data]);
 
+  const [forking, setForking] = useState(false);
   if (d.isLoading) return <div className="p-8"><Spinner label="loading model" /></div>;
   if (d.error || !m) return <div className="mx-auto max-w-[900px] p-8"><ErrorBox error={d.error ?? { message: "Model not found." }} /></div>;
 
   const fork = async () => {
-    setErr(null);
+    if (forking) return;
+    setErr(null); setForking(true);
     try { const r = await api<{ id: string }>(`/api/models/${id}/fork`, { method: "POST", json: { seed: forkSeed || `${m.seed}-fork`, name: `${m.name}-fork`.slice(0, 48) } }); router.push(`/networks/${r.id}`); }
-    catch (e) { setErr(e); }
+    catch (e) { setErr(e); setForking(false); }
   };
   const savePresentation = async () => {
     setErr(null);
@@ -84,7 +86,7 @@ export function ModelDetail({ id }: { id: string }) {
               <tr key={x.id} className={`border-t border-line ${x.version === v ? "text-accent" : ""}`}>
                 <td>v{x.version}</td><td>{x.trained ? "checkpoint" : "generated"}</td><td><Hash value={x.artifact_hash} n={5} /></td>
                 <td>{x.metrics?.valLoss !== undefined ? fmt(x.metrics.valLoss, 4) : "—"}</td><td>{ago(x.created_at)}</td>
-                <td className="text-right"><button className="act" onClick={() => setVer(x.version)}>view</button></td>
+                <td className="text-right"><button className="act" aria-label={`View version ${x.version}`} onClick={() => setVer(x.version)}>View</button></td>
               </tr>
             ))}</tbody>
           </table>
@@ -98,8 +100,8 @@ export function ModelDetail({ id }: { id: string }) {
         </Panel>
         <Panel title="fork configuration">
           <p className="text-muted">Forking copies this configuration with a new seed. The fork is a new, independent deterministic model; trained weights are not copied.</p>
-          <div className="mt-2 flex gap-2"><input className="field" placeholder={`${m.seed}-fork`} value={forkSeed} onChange={(e) => setForkSeed(e.target.value)} aria-label="Fork seed" />
-            <button className="act-ghost" disabled={!session.data?.session} onClick={fork}>fork</button></div>
+          <div className="mt-2 flex gap-2"><input className="field" name="fork-seed" autoComplete="off" spellCheck={false} placeholder={`${m.seed}-fork…`} value={forkSeed} onChange={(e) => setForkSeed(e.target.value)} aria-label="Fork seed" />
+            <button className="act-ghost" disabled={!session.data?.session || forking} aria-busy={forking} onClick={fork}>{forking ? "Forking…" : "Fork"}</button></div>
           {!session.data?.session && <p className="mt-1 text-[12px] text-faint">Sign in with a wallet to fork.</p>}
         </Panel>
         <Panel title="training jobs">
