@@ -22,6 +22,7 @@
     "localnet": "bash infra/localnet.sh",
     "test:program": "bash programs/neuron_registry/test.sh",
     "test:e2e": "npm run test:e2e -w @neuron/web",
-    "db:seed": "npm run db:seed -w @neuron/web"
+    "db:seed": "npm run db:seed -w @neuron/web",
+    "preview": "npm run preview -w @neuron/web"
   }
 }

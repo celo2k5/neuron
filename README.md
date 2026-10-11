@@ -16,7 +16,15 @@ Generated models are computational structures, not trained intelligence. A match
 | `infra` | One-command localnet (Postgres + validator + registry + test mint), dev worker, Dockerfiles |
 | `docs` | Architecture, encoding/math, program, security, runbook, OpenAPI |
 
-## Run it locally
+## Quick preview (any OS, no Docker or system Postgres)
+
+```bash
+npm install
+npm run preview        # embedded PostgreSQL + Next dev server + worker → http://localhost:3000
+```
+On Windows you can double-click `start-preview.cmd`. Generation, the lab, inference, training, the gallery, experiments, the community network and dev-wallet sign-in all work. Token payments and on-chain commitments show as "not configured" until you also run the localnet stack below.
+
+## Run the full stack locally
 
 Requirements: Node ≥ 20.11, PostgreSQL 16 binaries, Rust + Solana CLI (Agave) with `cargo build-sbf`.
 

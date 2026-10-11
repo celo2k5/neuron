@@ -2,8 +2,9 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
+import { fileURLToPath } from "node:url";
 
-const dir = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "db", "migrations");
+const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "db", "migrations");
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 await client.query("create table if not exists schema_migrations (version text primary key, applied_at timestamptz not null default now())");

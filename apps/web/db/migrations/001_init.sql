@@ -1,5 +1,5 @@
 -- NEURON schema v1. All timestamps UTC. Token amounts are exact integers (numeric(39,0)).
-create extension if not exists pgcrypto;
+-- gen_random_uuid() is built into PostgreSQL 13+
 
 create table users (
   id uuid primary key default gen_random_uuid(),
