@@ -310,7 +310,7 @@ export class Scene3D {
     this.camera.aspect = r.width / r.height;
     const wide = r.width >= 1024;
     // phones: lift the specimen into the top half so the headline sits below it
-    const ox = wide ? this.opts.offsetX : 0, oy = wide ? this.opts.offsetY : this.opts.offsetX ? -0.2 : 0;
+    const ox = wide ? this.opts.offsetX : 0, oy = wide ? this.opts.offsetY : this.opts.offsetX ? 0.2 : 0;
     if (ox || oy) this.camera.setViewOffset(r.width, r.height, -r.width * ox, r.height * oy, r.width, r.height); else this.camera.clearViewOffset();
     this.camera.updateProjectionMatrix();
     if (this.G) this.frame3d();
