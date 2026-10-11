@@ -1,0 +1,10 @@
+node_modules
+.next
+target
+*.log
+.env
+.env.local
+apps/web/.artifacts
+apps/web/test-results
+apps/web/playwright-report
+infra/.localnet
