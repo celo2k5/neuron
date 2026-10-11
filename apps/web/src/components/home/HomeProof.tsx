@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import { Reveal, Empty, ago } from "../ui";
+import { CountUp, SplitHeading } from "../motion";
 
 interface Stats { models: number; trained_versions: number; experiments: number; verified: number; community_neurons: number; network_version: number }
 interface Act { id: string; topic: string; ref_id: string; created_at: string }
@@ -27,7 +28,7 @@ export function HomeProof() {
     <section className="border-t border-line" aria-labelledby="proof-h">
       <div className="mx-auto grid max-w-[1440px] gap-16 px-5 py-28 sm:px-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:py-36">
         <div>
-          <h2 id="proof-h" className="display text-[clamp(38px,4.4vw,64px)]">Hashes, not promises.</h2>
+          <SplitHeading as="h2" id="proof-h" text="Hashes, not promises." className="display text-[clamp(38px,4.4vw,64px)]" />
           <p className="mt-5 max-w-[44ch] text-[16px] text-muted">Every experiment pins an immutable model version and hashes its input and output. Commit that hash to Solana and anyone can recompute it.</p>
           <p className="mt-4 max-w-[44ch] text-[16px] text-muted">A matching record proves what was recorded and when. It does not prove the arithmetic; reproducing the run does that.</p>
           <Link href="/about#verification" className="act mt-7 inline-block">Read the trust model</Link>
@@ -37,7 +38,7 @@ export function HomeProof() {
             <dl className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3">
               {cells.map(([k, v, href]) => (
                 <Link key={k} href={href} className="group block no-underline">
-                  <dd className="font-serif-d text-[56px] font-light leading-none tracking-[-0.03em] tabular-nums transition-colors group-hover:text-accent-2">{v === undefined ? "–" : v.toLocaleString()}</dd>
+                  <dd className="font-serif-d text-[56px] font-light leading-none tracking-[-0.03em] tabular-nums transition-colors group-hover:text-accent-2"><CountUp value={v} /></dd>
                   <dt className="mt-3 text-[13px] text-muted">{k}</dt>
                 </Link>
               ))}

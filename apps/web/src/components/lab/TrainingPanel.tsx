@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Segmented } from "../motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { DATASETS, exportModel, importModel, makeDataset, trainingIssues, TRAIN_LIMITS, type DatasetId, type EpochMetrics, type Model, type TrainOptions } from "@neuron/engine";
 import { api } from "@/lib/client/api";
@@ -55,8 +56,7 @@ export function TrainingPanel({ model, persistedModelId, onPreviewWeights, onLoa
         {field("valFraction", "val split", 0.05, 0.05, 0.5)}
         {field("samples", "samples", 20, 16, TRAIN_LIMITS.maxDataset)}
         <div className="mt-1 flex gap-1" role="radiogroup" aria-label="Where to train">
-          <button className="act-ghost" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>browser preview</button>
-          <button className="act-ghost" aria-pressed={mode === "server"} onClick={() => setMode("server")}>train on neuron</button>
+          <Segmented size="sm" label="Where to train" value={mode} onChange={setMode} options={[{ value: "preview", label: "browser preview" }, { value: "server", label: "train on neuron" }]} />
         </div>
         {issues.length > 0 && <ul role="alert" className="text-[12.5px] text-bad">{issues.map((i) => <li key={i}>— {i}</li>)}</ul>}
       </div>

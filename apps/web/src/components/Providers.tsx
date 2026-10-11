@@ -1,6 +1,8 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { MotionConfig } from "motion/react";
+import { spring } from "@/lib/client/motion";
 import { NeuronWalletProvider } from "@/lib/client/wallet";
 import { useEventStream } from "@/lib/client/events";
 import { ClientApiError } from "@/lib/client/api";
@@ -14,11 +16,13 @@ export function Providers({ children }: { children: ReactNode }) {
     },
   }));
   return (
-    <QueryClientProvider client={qc}>
-      <NeuronWalletProvider>
-        <Events />
-        {children}
-      </NeuronWalletProvider>
-    </QueryClientProvider>
+    <MotionConfig reducedMotion="user" transition={spring.soft}>
+      <QueryClientProvider client={qc}>
+        <NeuronWalletProvider>
+          <Events />
+          {children}
+        </NeuronWalletProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   );
 }

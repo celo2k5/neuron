@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Segmented } from "./motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { configIssues, exportModel, forward, generateModel, randomConfig, connectionCount, parameterCount, VISUAL_FORMS, type Model, type VisualForm } from "@neuron/engine";
@@ -104,7 +105,7 @@ export function Generator() {
         <div className="panel relative min-h-[560px] overflow-hidden">
           {model ? <GraphCanvas model={model} form={draft.form} palette={draft.palette} activations={acts} className="absolute inset-0" /> : <div className="flex h-full items-center justify-center p-6 text-bad">{issues[0]}</div>}
           <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-1">
-            {VISUAL_FORMS.map((f) => <button key={f} className="act-ghost" aria-pressed={draft.form === f} onClick={() => setDraft({ ...draft, form: f })}>{f.toLowerCase()}</button>)}
+            <Segmented label="Geometry" value={draft.form} onChange={(f) => setDraft({ ...draft, form: f as VisualForm })} className="!bg-bg/60 backdrop-blur-xl" options={VISUAL_FORMS.map((f) => ({ value: f as string, label: f.toLowerCase() }))} />
           </div>
         </div>
         <div className="flex flex-col gap-5">

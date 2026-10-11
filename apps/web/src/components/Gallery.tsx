@@ -9,6 +9,9 @@ import { useModelArtifact, type ModelRow } from "@/lib/client/hooks";
 import { useSession } from "@/lib/client/wallet";
 import { seededInput } from "@/lib/client/specimens";
 import { GraphCanvas } from "./GraphCanvas";
+import { LiftCard } from "./motion";
+import { AnimatePresence, motion } from "motion/react";
+import { spring, exit } from "@/lib/client/motion";
 import { Empty, ErrorBox, Hash, Reveal, Scramble, Skeleton, ago, fmt, short } from "./ui";
 
 export function Gallery() {
@@ -63,7 +66,7 @@ export function Gallery() {
         <span className="tnum">{items.length} shown{list.hasNextPage ? " · more available" : ""}</span>
         {list.hasNextPage && <button className="act" disabled={list.isFetchingNextPage} onClick={() => list.fetchNextPage()}>{list.isFetchingNextPage ? "loading…" : "load next page"}</button>}
       </div>
-      {compare.length > 0 && <Compare models={compare} onClose={() => setCompare([])} />}
+      <AnimatePresence>{compare.length > 0 && <Compare models={compare} onClose={() => setCompare([])} />}</AnimatePresence>
     </div>
   );
 }
@@ -76,7 +79,7 @@ function Card({ m, i, selected, onCompare }: { m: ModelRow; i: number; selected:
   const [acts, setActs] = useState<number[][] | null>(null);
   return (
     <Reveal delay={(i % 4) * 60}>
-      <article className={`panel group relative overflow-hidden transition-transform duration-500 hover:-translate-y-1 ${selected ? "ring-1 ring-accent" : ""}`} onMouseEnter={() => setActs(forward(model, seededInput(m.seed, m.config.inputDim)).a.map((v) => Array.from(v)))}>
+      <LiftCard className={selected ? "ring-1 ring-accent" : ""} onMouseEnter={() => setActs(forward(model, seededInput(m.seed, m.config.inputDim)).a.map((v) => Array.from(v)))}>
         <Link href={`/networks/${m.id}`} className="block no-underline" aria-label={`${m.name}, ${m.architecture}`}>
           <GraphCanvas model={model} form={m.presentation.form as VisualForm} palette={m.presentation.palette} activations={acts} interactive={false} labels={false} className="h-[220px]" edgeBudget={600} />
         </Link>
@@ -91,7 +94,7 @@ function Card({ m, i, selected, onCompare }: { m: ModelRow; i: number; selected:
             <label className="flex items-center gap-1 text-muted"><input type="checkbox" checked={selected} onChange={onCompare} /> compare</label>
           </div>
         </div>
-      </article>
+      </LiftCard>
     </Reveal>
   );
 }
@@ -107,7 +110,7 @@ function Compare({ models, onClose }: { models: ModelRow[]; onClose: () => void 
     ["config hash", (m) => <Hash value={m.config_hash} />], ["v1 output", (_m, x) => (input ? `[${forward(x, input).output.map((v) => fmt(v, 3)).join(", ")}]` : "inputs differ")],
   ];
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-accent bg-bg/97 p-4 shadow-[0_-20px_60px_-30px_rgba(0,0,0,.7)]" role="region" aria-label="Model comparison">
+    <motion.div initial={{ y: "100%" }} animate={{ y: 0, transition: spring.soft }} exit={{ y: "100%", transition: exit }} className="fixed inset-x-0 bottom-0 z-30 border-t border-accent/40 bg-bg/90 p-5 backdrop-blur-xl shadow-[0_-20px_60px_-30px_rgba(0,0,0,.7)]" role="region" aria-label="Model comparison">
       <div className="mx-auto max-w-[1100px]">
         <div className="flex items-center justify-between"><span className="label">compare {models.length === 1 ? "· pick one more" : ""}</span><button className="act" onClick={onClose}>close</button></div>
         <div className="mt-2 overflow-x-auto">
@@ -120,6 +123,6 @@ function Compare({ models, onClose }: { models: ModelRow[]; onClose: () => void 
         </div>
         {input && <p className="mt-1 text-[11.5px] text-faint">Both run on the same seeded input {`[${input.map((v) => v.toFixed(2)).join(", ")}]`}.</p>}
       </div>
-    </div>
+    </motion.div>
   );
 }

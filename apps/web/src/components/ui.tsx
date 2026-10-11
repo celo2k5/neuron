@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { spring } from "@/lib/client/motion";
 
 export const short = (s: string, n = 4) => (s.length > n * 2 + 1 ? `${s.slice(0, n)}…${s.slice(-n)}` : s);
 export const fmt = (v: number | null | undefined, d = 4) => (v === null || v === undefined || !Number.isFinite(v) ? "—" : Math.abs(v) >= 1e4 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(2) : v.toFixed(d));
@@ -85,22 +87,26 @@ export function Scramble({ text, className = "", as: As = "span" }: { text: stri
   return <As className={`rise ${className}`}>{text}</As>;
 }
 
-/** reveal-on-scroll wrapper: content stays readable before JS / at rest */
-export function Reveal({ children, delay = 0, kind = "rise", className = "" }: { children: ReactNode; delay?: number; kind?: "rise" | "wipe"; className?: string }) {
+/**
+ * Reveal on scroll (spring). Content already on screen at mount is left static, so the first
+ * frame is complete; content below the fold rises in once, with a small per-item stagger.
+ */
+export function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; kind?: "rise" | "wipe"; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<"idle" | "pending" | "shown">("idle");
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const r = el.getBoundingClientRect();
-    if (r.top < window.innerHeight * 0.9) return; // already in view at load: leave it static
-    setState("pending");
-    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting) { setTimeout(() => setState("shown"), delay); io.disconnect(); } }, { rootMargin: "0px 0px -8% 0px" });
-    io.observe(el);
-    const fallback = setTimeout(() => setState("shown"), 4000);
-    return () => { io.disconnect(); clearTimeout(fallback); };
-  }, [delay]);
-  return <div ref={ref} className={className} data-reveal={state === "idle" ? undefined : state} data-reveal-kind={kind}>{children}</div>;
+  const reduce = useReducedMotion();
+  const [below, setBelow] = useState(false);
+  useEffect(() => { const r = ref.current?.getBoundingClientRect(); if (r && r.top > window.innerHeight * 0.92) setBelow(true); }, []);
+  const animateIn = below && !reduce;
+  return (
+    <motion.div ref={ref} className={className}
+      initial={false}
+      animate={animateIn ? undefined : { opacity: 1, y: 0 }}
+      whileInView={animateIn ? { opacity: 1, y: 0, filter: "blur(0px)", transition: { ...spring.soft, delay: delay / 1000 } } : undefined}
+      style={animateIn ? { opacity: 0.25, y: 22, filter: "blur(6px)" } : undefined}
+      viewport={{ once: true, margin: "0px 0px -8% 0px" }}>
+      {children}
+    </motion.div>
+  );
 }
 
 export function Spinner({ label = "working" }: { label?: string }) {

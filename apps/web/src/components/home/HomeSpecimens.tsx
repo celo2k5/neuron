@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { forward, generateModel, connectionCount } from "@neuron/engine";
 import { GraphCanvas } from "../GraphCanvas";
 import { Reveal, short } from "../ui";
+import { LiftCard, SplitHeading } from "../motion";
 import { SPECIMENS, seededInput } from "@/lib/client/specimens";
 
 const FORM_NAME: Record<string, string> = { CONSTELLATION: "Constellation", CORTEX: "Cortex", CIRCUIT: "Circuit", FRACTAL: "Fractal", SYNAPSE: "Synapse", MINIMAL: "Minimal" };
@@ -16,7 +17,7 @@ export function HomeSpecimens() {
       <div className="relative mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:py-36">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <h2 id="spec-h" className="display text-[clamp(38px,4.4vw,64px)]">Six specimens, six geometries.</h2>
+            <SplitHeading as="h2" id="spec-h" text="Six specimens, six geometries." className="display text-[clamp(38px,4.4vw,64px)]" />
             <p className="mt-5 max-w-[56ch] text-[16px] text-muted">Each is a different seed, so each has its own architecture and weights. The geometry only changes how the graph is drawn; it never changes the model&apos;s hash. Hover one to run it.</p>
           </div>
           <Link href="/networks" className="act">Open the gallery</Link>
@@ -35,7 +36,7 @@ function Specimen({ form, config, model, i }: { form: (typeof SPECIMENS)[number]
   const play = () => { const k = n + 1; setN(k); setActs(forward(model, seededInput(`${config.seed}-${k}`, config.inputDim)).a.map((v) => Array.from(v))); };
   return (
     <Reveal delay={(i % 3) * 90}>
-      <article className="panel group overflow-hidden transition-[transform,box-shadow] duration-500 hover:-translate-y-1" onMouseEnter={play} onFocus={play}>
+      <LiftCard onMouseEnter={play} onFocus={play}>
         <GraphCanvas model={model} form={form} activations={acts} interactive={false} labels={false} className="h-[260px]" ariaLabel={`${config.name}, ${FORM_NAME[form]} geometry`} />
         <div className="flex items-end justify-between gap-4 border-t border-line px-5 py-4">
           <div className="min-w-0">
@@ -46,7 +47,7 @@ function Specimen({ form, config, model, i }: { form: (typeof SPECIMENS)[number]
             <span className="tnum">{short(model.artifactHash, 4)}</span>
           </Link>
         </div>
-      </article>
+      </LiftCard>
     </Reveal>
   );
 }

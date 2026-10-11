@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { Segmented } from "./motion";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -67,8 +68,8 @@ export function ModelDetail({ id }: { id: string }) {
         <div className="panel relative min-h-[500px] overflow-hidden">
           {art.data && v3 ? <Specimen3D model={art.data} activations={acts} className="absolute inset-0" zoom framing={0.95} /> : art.data ? <GraphCanvas model={art.data} form={shownForm} palette={m.presentation.palette} activations={acts} className="absolute inset-0" /> : <div className="p-6"><Spinner label="verifying artifact" /></div>}
           <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-1">
-            <button className="act-ghost" aria-pressed={v3} onClick={() => setV3(true)}>3D</button>
-            {VISUAL_FORMS.map((f) => <button key={f} className="act-ghost" aria-pressed={!v3 && shownForm === f} onClick={() => { setV3(false); setForm(f); }}>{f.toLowerCase()}</button>)}
+            <Segmented label="View" value={v3 ? "3D" : shownForm} onChange={(v) => { if (v === "3D") setV3(true); else { setV3(false); setForm(v as VisualForm); } }} className="glass-chip !bg-bg/60"
+              options={[{ value: "3D", label: "3D" }, ...VISUAL_FORMS.map((f) => ({ value: f as string, label: f.toLowerCase() }))]} />
             {isOwner && form && form !== m.presentation.form && <button className="act ml-2" onClick={savePresentation}>save as preferred view</button>}
           </div>
         </div>

@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import { DEV_WALLET, useNeuronWallet, useSession, useSignIn, useConfig } from "@/lib/client/wallet";
 import { short } from "./ui";
+import { AnimatePresence, motion } from "motion/react";
+import { spring, exit } from "@/lib/client/motion";
 
 export function WalletButton() {
   const w = useNeuronWallet();
@@ -31,16 +33,18 @@ export function WalletButton() {
       <button className={signedIn ? "act-ghost tnum" : "act-primary"} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="dialog" data-testid="wallet-button">
         {signedIn ? <><span className="dot text-good mr-1.5" />{short(w.address!)}</> : w.address ? "sign in" : <>connect<span className="hidden sm:inline"> wallet</span></>}
       </button>
+      <AnimatePresence>
       {open && (
-        <div role="dialog" aria-label="Wallet" className="panel absolute right-0 top-[calc(100%+8px)] z-50 w-[320px] max-w-[calc(100vw-32px)] bg-bg p-3 shadow-[0_20px_60px_-20px_rgba(0,0,0,.6)]">
+        <motion.div role="dialog" aria-label="Wallet" className="panel absolute right-0 top-[calc(100%+10px)] z-50 w-[340px] max-w-[calc(100vw-32px)] origin-top-right !bg-bg/95 p-4 backdrop-blur-xl"
+          initial={{ opacity: 0, scale: 0.94, y: -6 }} animate={{ opacity: 1, scale: 1, y: 0, transition: spring.ui }} exit={{ opacity: 0, scale: 0.97, y: -4, transition: exit }}>
           {!w.address ? (
             <>
-              <div className="label mb-2">choose a wallet</div>
+              <div className="mb-3 text-[13px] font-medium">Choose a wallet</div>
               <ul className="flex flex-col gap-1">
                 {w.available.length === 0 && <li className="text-muted">No Solana wallet detected in this browser. Install Phantom, Solflare or Backpack{cfg?.cluster === "localnet" ? "" : ""}.</li>}
                 {w.available.map((a) => (
                   <li key={a.name}>
-                    <button className="flex w-full items-center gap-2 border border-line px-2 py-1.5 text-left hover:border-accent disabled:opacity-40" disabled={!a.ready || busy}
+                    <button className="flex min-h-11 w-full items-center gap-2.5 rounded-xl border border-line px-3 py-2 text-left text-[13px] transition-colors hover:border-accent/60 hover:bg-accent/5 disabled:opacity-40" disabled={!a.ready || busy}
                       onClick={() => run(() => w.connect(a.name))} data-testid={a.name === DEV_WALLET ? "dev-wallet" : undefined}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- wallet icons are data: URIs from the wallet itself */}
                       {a.icon ? <img src={a.icon} alt="" width={16} height={16} /> : <span className="pill text-warn">dev</span>}
@@ -54,7 +58,7 @@ export function WalletButton() {
             </>
           ) : (
             <>
-              <div className="flex items-baseline justify-between"><span className="label">{w.label}</span><span className="tnum text-muted">{short(w.address, 6)}</span></div>
+              <div className="flex items-baseline justify-between"><span className="text-[13px] font-medium">{w.label}</span><span className="tnum text-muted">{short(w.address, 6)}</span></div>
               <div className="mt-2 break-all text-[11.5px] text-faint">{w.address}</div>
               {signedIn ? (
                 <dl className="kv mt-3">
@@ -76,8 +80,9 @@ export function WalletButton() {
             </>
           )}
           {err && <p role="alert" className="mt-2 text-bad">{err}</p>}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -90,7 +95,7 @@ function DevTools({ address }: { address: string }) {
   useEffect(() => { refresh().catch(() => {}); }, [address]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="mt-3 border-t border-line pt-2">
-      <div className="label">localnet tools</div>
+      <div className="text-[12.5px] text-muted">Localnet tools</div>
       <div className="mt-1 flex flex-wrap items-center gap-3">
         <span className="tnum">{sol === null ? "…" : `${sol.toFixed(3)} SOL`}</span>
         <button className="act" onClick={async () => {

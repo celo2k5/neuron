@@ -6,6 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import { useConfig } from "@/lib/client/wallet";
 import { useStreamStatus } from "@/lib/client/events";
+import { AnimatePresence, motion } from "motion/react";
+import { spring, exit } from "@/lib/client/motion";
 import { WalletButton } from "./WalletButton";
 import { Glyph } from "./Glyph";
 
@@ -72,8 +74,9 @@ export function Header() {
             const on = path === n.href || path.startsWith(n.href + "/");
             return (
               <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined}
-                className={`rounded-full px-3 py-1.5 text-[13.5px] no-underline transition-colors ${on ? "bg-fg/[0.07] text-fg" : "text-muted hover:text-fg"}`}>
-                {n.label}
+                className={`relative rounded-full px-3 py-1.5 text-[13.5px] no-underline transition-colors duration-200 ${on ? "text-fg" : "text-muted hover:text-fg"}`}>
+                {on && <motion.span layoutId="nav-pill" transition={spring.ui} className="absolute inset-0 rounded-full bg-fg/[0.08] ring-1 ring-fg/[0.06]" />}
+                <span className="relative">{n.label}</span>
               </Link>
             );
           })}
@@ -81,17 +84,24 @@ export function Header() {
         <div className="ml-auto flex min-w-0 items-center gap-4">
           <NetworkStatus />
           <WalletButton />
-          <button className="act xl:hidden" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Menu"}</button>
+          <button className="act min-h-11 xl:hidden" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Menu"}</button>
         </div>
       </div>
+      <AnimatePresence>
       {open && (
-        <nav id="mobile-nav" aria-label="Mobile" className="border-t border-line bg-bg/95 px-5 py-4 backdrop-blur-xl xl:hidden">
+        <motion.nav id="mobile-nav" aria-label="Mobile" className="origin-top border-t border-line bg-bg/95 px-5 py-4 backdrop-blur-xl xl:hidden"
+          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0, transition: spring.soft }} exit={{ opacity: 0, y: -6, transition: exit }}>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
-            {NAV.map((n) => <li key={n.href}><Link href={n.href} className="text-[15px] no-underline">{n.label}</Link></li>)}
+            {NAV.map((n, i) => (
+              <motion.li key={n.href} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0, transition: { ...spring.soft, delay: i * 0.03 } }}>
+                <Link href={n.href} className="flex min-h-11 items-center text-[15px] no-underline">{n.label}</Link>
+              </motion.li>
+            ))}
           </ul>
           <div className="mt-4"><ClusterPill /></div>
-        </nav>
+        </motion.nav>
       )}
+      </AnimatePresence>
     </header>
   );
 }

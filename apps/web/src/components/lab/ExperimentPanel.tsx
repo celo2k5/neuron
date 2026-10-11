@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { Segmented } from "../motion";
 import Link from "next/link";
 import { DATASETS, makeDataset, runExperiment, configIssues, type ExperimentRecord, type Model } from "@neuron/engine";
 import { api } from "@/lib/client/api";
@@ -59,8 +60,8 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
 
   return (
     <div className="flex flex-col gap-2" data-testid="experiment-panel">
-      <div className="flex gap-1" role="radiogroup" aria-label="Input source">
-        {(["seeded", "manual", "dataset"] as Source[]).map((s) => <button key={s} className="act-ghost" aria-pressed={source === s} onClick={() => setSource(s)}>{s}</button>)}
+      <div>
+        <Segmented label="Input source" value={source} onChange={setSource} options={(["seeded", "manual", "dataset"] as Source[]).map((s) => ({ value: s, label: s }))} />
       </div>
       {source === "manual" && <textarea aria-label={`Input vector, ${dim} numbers`} className="field tnum min-h-[52px]" value={manual} onChange={(e) => setManual(e.target.value)} data-testid="manual-input" />}
       {source === "seeded" && <input aria-label="Input seed" className="field tnum" value={seed} onChange={(e) => setSeed(e.target.value || "0")} />}

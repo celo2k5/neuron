@@ -35,7 +35,8 @@
     "tweetnacl": "1.0.3",
     "zod": "3.25.76",
     "zod-to-json-schema": "3.25.2",
-    "three": "0.170.0"
+    "three": "0.170.0",
+    "motion": "12.43.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",

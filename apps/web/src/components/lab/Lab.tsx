@@ -1,5 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { Segmented } from "../motion";
+import { spring, exit } from "@/lib/client/motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
@@ -106,10 +109,10 @@ export function Lab() {
       {/* CENTER — instrument */}
       <div className="panel flex min-w-0 flex-col overflow-hidden">
         <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-4 py-3">
-          <button className="act-ghost" aria-pressed={view3d} onClick={() => setView3d(true)} data-testid="view-3d">3D</button>
-          {VISUAL_FORMS.map((f) => <button key={f} className="act-ghost" aria-pressed={!view3d && f === form} onClick={() => { setView3d(false); setForm(f); }}>{f.toLowerCase()}</button>)}
+          <Segmented label="View" value={view3d ? "3D" : form} onChange={(v) => { if (v === "3D") setView3d(true); else { setView3d(false); setForm(v as VisualForm); } }}
+            options={[{ value: "3D", label: "3D", testId: "view-3d" }, ...VISUAL_FORMS.map((f) => ({ value: f as string, label: f.toLowerCase() }))]} />
           <span className="mx-2 h-4 w-px bg-line" />
-          {!view3d && (["theme", "seed"] as const).map((p) => <button key={p} className="act-ghost" aria-pressed={p === palette} onClick={() => setPalette(p)}>{p} palette</button>)}
+          {!view3d && <Segmented size="sm" label="Palette" value={palette} onChange={setPalette} options={[{ value: "theme", label: "Theme" }, { value: "seed", label: "Seed" }]} />}
           {preview && <span className="pill ml-auto text-warn">Preview weights, not saved</span>}
           {last && <button className="act ml-auto" onClick={() => (view3d ? g3.current?.play(last.activations) : graph.current?.play(last.activations))}>Replay</button>}
         </div>
@@ -119,12 +122,14 @@ export function Lab() {
         </div>
         <div className="border-t border-line">
           <div className="flex gap-1.5 border-b border-line px-4 py-3">
-            {(["result", "training"] as const).map((t) => <button key={t} className="act-ghost" aria-pressed={tab === t} onClick={() => setTab(t)}>{t === "result" ? "Experiment result" : "Training"}</button>)}
+            <Segmented label="Panel" value={tab} onChange={setTab} options={[{ value: "result", label: "Experiment result" }, { value: "training", label: "Training" }]} />
           </div>
-          <div className="p-5">
+          <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={tab} className="p-5" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: exit }} transition={spring.soft}>
             {tab === "result" ? (last ? <ResultView r={last} /> : <p className="text-muted">Run an experiment to see its input, output, every intermediate activation and hashes here. The animation above replays the same numbers.</p>)
               : model && <TrainingPanel model={base ?? model} persistedModelId={modelId} onPreviewWeights={setPreview} onLoadVersion={loadVersion} onAdapt={adapt} />}
-          </div>
+          </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 

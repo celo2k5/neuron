@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { Segmented } from "../motion";
 import {
   ACTIVATIONS, ARCHITECTURES, INITS, LIMITS, VISUAL_FORMS, configIssues, suggestActivations, suggestWidths,
   type Activation, type Architecture, type ModelConfig, type OutputActivation, type VisualForm, type WeightInit,
@@ -77,7 +78,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
       </div>
       <Row label="widths">
         <div className="flex gap-1" role="radiogroup" aria-label="Width mode">
-          {(["seeded", "manual"] as const).map((m) => <button key={m} type="button" className="act-ghost" aria-pressed={draft.widthMode === m} onClick={() => set("widthMode", m)}>{m}</button>)}
+          <Segmented size="sm" label="Width mode" value={draft.widthMode} onChange={(v) => set("widthMode", v)} options={[{ value: "seeded", label: "seeded" }, { value: "manual", label: "manual" }]} />
         </div>
       </Row>
       {draft.widthMode === "seeded" ? (
@@ -93,7 +94,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
       )}
       <Row label="activations">
         <div className="flex gap-1">
-          {(["seeded", "uniform"] as const).map((m) => <button key={m} type="button" className="act-ghost" aria-pressed={draft.actMode === m} onClick={() => set("actMode", m)}>{m}</button>)}
+          <Segmented size="sm" label="Activation mode" value={draft.actMode} onChange={(v) => set("actMode", v)} options={[{ value: "seeded", label: "seeded" }, { value: "uniform", label: "uniform" }]} />
           {draft.actMode === "uniform" && (
             <select aria-label="Hidden activation" className="field !w-auto" value={draft.act} onChange={(e) => set("act", e.target.value as Activation)}>
               {ACTIVATIONS.map((a) => <option key={a}>{a}</option>)}
@@ -120,7 +121,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
             <select id="f-form" className="field" value={draft.form} onChange={(e) => set("form", e.target.value as VisualForm)}>{VISUAL_FORMS.map((f) => <option key={f}>{f}</option>)}</select>
           </Row>
           <Row label="palette">
-            <div className="flex gap-1">{(["theme", "seed"] as const).map((m) => <button key={m} type="button" className="act-ghost" aria-pressed={draft.palette === m} onClick={() => set("palette", m)}>{m}</button>)}</div>
+            <div className="flex gap-1"><Segmented size="sm" label="Palette" value={draft.palette} onChange={(v) => set("palette", v)} options={[{ value: "theme", label: "theme" }, { value: "seed", label: "seed" }]} /></div>
           </Row>
         </>
       )}

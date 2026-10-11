@@ -1,5 +1,9 @@
+"use client";
 import Link from "next/link";
+import { useRef } from "react";
+import { motion, useScroll, useSpring } from "motion/react";
 import { Reveal } from "../ui";
+import { SplitHeading } from "../motion";
 
 const STEPS: [string, string, string][] = [
   ["Connect your wallet", "Sign a one-time challenge bound to this site. No funds move.", "/lab"],
@@ -12,15 +16,19 @@ const STEPS: [string, string, string][] = [
 ];
 
 export function HomeLoop() {
+  const list = useRef<HTMLOListElement>(null);
+  const { scrollYProgress } = useScroll({ target: list, offset: ["start 75%", "end 55%"] });
+  const draw = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
   return (
     <section className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:py-36" aria-labelledby="loop-h">
       <div className="grid gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="lg:sticky lg:top-28 lg:self-start">
-          <h2 id="loop-h" className="display text-[clamp(38px,4.4vw,64px)]">From a wallet to a verified result.</h2>
+          <SplitHeading as="h2" id="loop-h" text="From a wallet to a verified result." className="display text-[clamp(38px,4.4vw,64px)]" />
           <p className="mt-5 max-w-[42ch] text-[16px] text-muted">Seven steps, in order. Each one is a working part of the instrument.</p>
         </div>
-        <ol className="relative">
+        <ol ref={list} className="relative">
           <span className="absolute bottom-6 left-[19px] top-6 w-px bg-[linear-gradient(180deg,transparent,var(--line)_10%,var(--line)_90%,transparent)]" aria-hidden />
+          <motion.span style={{ scaleY: draw }} className="absolute bottom-6 left-[19px] top-6 w-px origin-top bg-[linear-gradient(180deg,var(--accent-2),var(--accent))] shadow-[0_0_12px_var(--glow)]" aria-hidden />
           {STEPS.map(([t, d, href], i) => (
             <li key={t}>
               <Reveal delay={i * 50}>
