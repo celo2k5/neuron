@@ -10,3 +10,6 @@ apps/web/playwright-report
 infra/.localnet
 .cache
 .neuron-preview
+brag-output/work/
+infra/.devnet
+programs/neuron_registry/target-devnet
