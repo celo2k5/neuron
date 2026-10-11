@@ -3,18 +3,17 @@ import { ENGINE_VERSION, LIMITS, TOLERANCE, TRAIN_LIMITS, PRNG_VERSION } from "@
 export const metadata = { title: "About" };
 
 const S = ({ id, n, title, children }: { id: string; n: string; title: string; children: React.ReactNode }) => (
-  <section id={id} className="grid gap-4 border-t hair py-10 lg:grid-cols-[260px_minmax(0,1fr)]">
-    <div><div className="label">§ {n}</div><h2 className="display mt-2 text-[26px]">{title}</h2></div>
-    <div className="max-w-[72ch] space-y-3 text-[12.5px] leading-[1.75] text-muted [&_b]:text-fg [&_code]:text-accent-2">{children}</div>
+  <section id={id} className="grid gap-6 border-t border-line py-14 lg:grid-cols-[300px_minmax(0,1fr)]">
+    <div><div className="font-serif-d text-[15px] text-muted">{n}</div><h2 className="display mt-1 text-[32px]">{title}</h2></div>
+    <div className="max-w-[68ch] space-y-4 text-[15.5px] leading-[1.75] text-muted [&_b]:text-fg [&_code]:text-accent-2">{children}</div>
   </section>
 );
 
 export default function About() {
   return (
-    <div className="mx-auto max-w-[1200px] px-4 pt-8">
-      <div className="label">§ about</div>
-      <h1 className="display mt-2 text-[48px]">NEURON — ONE TOKEN.<br />INFINITE CONNECTIONS.</h1>
-      <p className="mt-4 max-w-[70ch] text-muted">A laboratory for neural computation you can see and check. It generates models from seeds, runs them, trains small ones, and records hashes of what happened on Solana. This page states what the system does and, as importantly, what it does not claim.</p>
+    <div className="mx-auto max-w-[1200px] px-5 pt-14 sm:px-8">
+      <h1 className="display mt-2 text-[clamp(48px,6vw,92px)]">One token.<br />Infinite connections.</h1>
+      <p className="mt-6 max-w-[62ch] text-[17px] text-muted">A laboratory for neural computation you can see and check. It generates models from seeds, runs them, trains small ones, and records hashes of what happened on Solana. This page states what the system does and, as importantly, what it does not claim.</p>
 
       <S id="math" n="01" title="Model math">
         <p>Each layer computes <code>z = W·a + b</code> (a dense matrix–vector product; sparse layers store pruned weights as exact zeros under a mask), adds an identity skip <code>+ a[l−2]</code> on residual layers, then applies its activation: ReLU, leaky ReLU (0.01), sigmoid, tanh, linear, or a numerically stable softmax on the output layer.</p>

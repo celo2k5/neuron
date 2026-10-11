@@ -11,8 +11,8 @@ export const ago = (iso: string) => {
 export function Panel({ title, meta, children, className = "", id }: { title: ReactNode; meta?: ReactNode; children: ReactNode; className?: string; id?: string }) {
   return (
     <section className={`panel min-w-0 ${className}`} id={id}>
-      <div className="panel-h"><h2 className="label">{title}</h2>{meta && <div className="text-[10px] text-muted">{meta}</div>}</div>
-      <div className="p-3">{children}</div>
+      <div className="panel-h"><h2 className="label">{title}</h2>{meta && <div className="text-[12px] text-muted">{meta}</div>}</div>
+      <div className="p-[18px] pt-3.5">{children}</div>
     </section>
   );
 }
@@ -35,14 +35,14 @@ export function StatusPill({ status }: { status: string }) {
     submitted: "text-accent", paused: "text-warn", failed: "text-bad", mismatch: "text-bad", cancelled: "text-muted", expired: "text-muted",
     not_committed: "text-faint", not_found: "text-warn", passed: "text-good", rejected: "text-bad", executed: "text-accent-2", active: "text-accent", dead: "text-bad",
   };
-  return <span className={`pill ${cls[status] ?? "text-muted"}`}>{status === "running" || status === "submitted" ? <span className="dot dot-live" /> : null}{status.replace(/_/g, " ")}</span>;
+  return <span className={`pill ${cls[status] ?? "text-muted"}`}>{status === "running" || status === "submitted" ? <span className="dot dot-live" /> : null}{(status.charAt(0).toUpperCase() + status.slice(1)).replace(/_/g, " ")}</span>;
 }
 
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="border border-dashed hair px-4 py-8 text-center">
-      <div className="label">{title}</div>
-      {children && <div className="mx-auto mt-2 max-w-[52ch] text-muted">{children}</div>}
+    <div className="rounded-2xl border border-dashed border-line px-6 py-10 text-center">
+      <div className="font-serif-d text-[20px] first-letter:uppercase">{title}</div>
+      {children && <div className="mx-auto mt-2 max-w-[52ch] text-[13.5px] text-muted">{children}</div>}
     </div>
   );
 }
@@ -51,9 +51,9 @@ export function ErrorBox({ error }: { error: unknown }) {
   if (!error) return null;
   const e = error as { message?: string; code?: string; requestId?: string };
   return (
-    <div role="alert" className="border border-bad/60 px-3 py-2 text-bad">
+    <div role="alert" className="rounded-xl border border-bad/40 bg-bad/5 px-4 py-2.5 text-[13px] text-bad">
       {e.message ?? String(error)}
-      {e.requestId && <span className="ml-2 text-[10px] text-muted">req {short(e.requestId, 4)}</span>}
+      {e.requestId && <span className="ml-2 text-[11.5px] text-muted">req {short(e.requestId, 4)}</span>}
     </div>
   );
 }
@@ -80,29 +80,9 @@ export function VectorBars({ values, height = 28, color = "var(--accent)", neg =
   );
 }
 
-/** text that decodes from glyph noise into its value when it scrolls into view */
+/** page/section heading with a soft rise on first view (name kept for call-site compatibility) */
 export function Scramble({ text, className = "", as: As = "span" }: { text: string; className?: string; as?: "span" | "h1" | "h2" | "h3" }) {
-  const ref = useRef<HTMLElement>(null);
-  const [out, setOut] = useState(text);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const glyphs = "▖▗▘▙▚▛▜▝▞▟░▒·:01";
-    let raf = 0, started = false;
-    const run = () => {
-      const t0 = performance.now();
-      const tick = (now: number) => {
-        const p = Math.min(1, (now - t0) / 900);
-        setOut(text.split("").map((ch, i) => (ch === " " || i / text.length < p ? ch : glyphs[(i * 7 + Math.floor(now / 40)) % glyphs.length])).join(""));
-        if (p < 1) raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    };
-    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting && !started) { started = true; run(); io.disconnect(); } }, { threshold: 0.4 });
-    io.observe(el);
-    return () => { io.disconnect(); cancelAnimationFrame(raf); };
-  }, [text]);
-  return <As ref={ref as never} className={className} aria-label={text}><span aria-hidden>{out}</span></As>;
+  return <As className={`rise ${className}`}>{text}</As>;
 }
 
 /** reveal-on-scroll wrapper: content stays readable before JS / at rest */
@@ -126,5 +106,5 @@ export function Reveal({ children, delay = 0, kind = "rise", className = "" }: {
 export function Spinner({ label = "working" }: { label?: string }) {
   const [i, setI] = useState(0);
   useEffect(() => { const t = setInterval(() => setI((x) => (x + 1) % 4), 160); return () => clearInterval(t); }, []);
-  return <span className="tnum text-muted" role="status">{["◐", "◓", "◑", "◒"][i]} {label}</span>;
+  return <span className="inline-flex items-center gap-2 text-[13px] text-muted" role="status"><span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-line border-t-accent-2" />{label.charAt(0).toUpperCase() + label.slice(1)}{".".repeat(i % 4)}</span>;
 }

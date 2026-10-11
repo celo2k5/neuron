@@ -40,7 +40,7 @@ export function WalletButton() {
                 {w.available.length === 0 && <li className="text-muted">No Solana wallet detected in this browser. Install Phantom, Solflare or Backpack{cfg?.cluster === "localnet" ? "" : ""}.</li>}
                 {w.available.map((a) => (
                   <li key={a.name}>
-                    <button className="flex w-full items-center gap-2 border hair px-2 py-1.5 text-left hover:border-accent disabled:opacity-40" disabled={!a.ready || busy}
+                    <button className="flex w-full items-center gap-2 border border-line px-2 py-1.5 text-left hover:border-accent disabled:opacity-40" disabled={!a.ready || busy}
                       onClick={() => run(() => w.connect(a.name))} data-testid={a.name === DEV_WALLET ? "dev-wallet" : undefined}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- wallet icons are data: URIs from the wallet itself */}
                       {a.icon ? <img src={a.icon} alt="" width={16} height={16} /> : <span className="pill text-warn">dev</span>}
@@ -50,12 +50,12 @@ export function WalletButton() {
                   </li>
                 ))}
               </ul>
-              {cfg?.cluster === "localnet" && <p className="mt-2 text-[10px] text-muted">The dev wallet is a burner key stored in this browser. It exists only on localnet for testing.</p>}
+              {cfg?.cluster === "localnet" && <p className="mt-2 text-[11.5px] text-muted">The dev wallet is a burner key stored in this browser. It exists only on localnet for testing.</p>}
             </>
           ) : (
             <>
               <div className="flex items-baseline justify-between"><span className="label">{w.label}</span><span className="tnum text-muted">{short(w.address, 6)}</span></div>
-              <div className="mt-2 break-all text-[10px] text-faint">{w.address}</div>
+              <div className="mt-2 break-all text-[11.5px] text-faint">{w.address}</div>
               {signedIn ? (
                 <dl className="kv mt-3">
                   <dt>credits</dt><dd data-testid="credits-available">{s?.credits?.available ?? 0} available</dd>
@@ -69,7 +69,7 @@ export function WalletButton() {
                 </div>
               )}
               {w.kind === "dev" && <DevTools address={w.address} />}
-              <div className="mt-3 flex gap-4 border-t hair pt-2">
+              <div className="mt-3 flex gap-4 border-t border-line pt-2">
                 {signedIn && <button className="act" onClick={() => run(async () => { await api("/api/auth/session", { method: "DELETE" }); await qc.invalidateQueries(); })}>sign out</button>}
                 <button className="act" onClick={() => run(w.disconnect)}>disconnect</button>
               </div>
@@ -89,7 +89,7 @@ function DevTools({ address }: { address: string }) {
   const refresh = async () => { if (w.connection) setSol((await w.connection.getBalance(new (await import("@solana/web3.js")).PublicKey(address))) / 1e9); };
   useEffect(() => { refresh().catch(() => {}); }, [address]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className="mt-3 border-t hair pt-2">
+    <div className="mt-3 border-t border-line pt-2">
       <div className="label">localnet tools</div>
       <div className="mt-1 flex flex-wrap items-center gap-3">
         <span className="tnum">{sol === null ? "…" : `${sol.toFixed(3)} SOL`}</span>
@@ -102,7 +102,7 @@ function DevTools({ address }: { address: string }) {
           catch (e) { setMsg((e as Error).message); }
         }}>mint test $NEURON</button>
       </div>
-      {msg && <p className="mt-1 text-[10px] text-muted">{msg}</p>}
+      {msg && <p className="mt-1 text-[11.5px] text-muted">{msg}</p>}
     </div>
   );
 }

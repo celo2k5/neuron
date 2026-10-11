@@ -27,7 +27,7 @@ function Histogram({ model }: { model: Model }) {
       <div className="flex h-[70px] items-end gap-px" role="img" aria-label={`Weight distribution of ${ws.length} weights, mean ${mean.toFixed(3)}, sd ${sd.toFixed(3)}`}>
         {bins.map((b, i) => <div key={i} className="flex-1 transition-[height] duration-500" style={{ height: `${(b / top) * 100}%`, background: i < B / 2 ? "var(--neg)" : "var(--pos)", opacity: 0.8 }} />)}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-muted tnum"><span>−{mx.toFixed(2)}</span><span>μ {mean.toFixed(3)} · σ {sd.toFixed(3)}</span><span>+{mx.toFixed(2)}</span></div>
+      <div className="mt-1 flex justify-between text-[11.5px] text-muted tnum"><span>−{mx.toFixed(2)}</span><span>μ {mean.toFixed(3)} · σ {sd.toFixed(3)}</span><span>+{mx.toFixed(2)}</span></div>
     </div>
   );
 }
@@ -83,36 +83,35 @@ export function Generator() {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px]">
-      <div className="flex flex-wrap items-end justify-between gap-4 px-4 pb-4 pt-8">
+    <div className="mx-auto max-w-[1600px] px-5 sm:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-6 pb-8 pt-14">
         <div>
-          <div className="label">§ model generator</div>
-          <Scramble as="h1" text="SEED IN. STRUCTURE OUT." className="display mt-2 block text-[40px]" />
+          <Scramble as="h1" text="Seed in. Structure out." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
           <p className="mt-2 max-w-[70ch] text-muted">The same seed, configuration and engine version always reproduce the same topology, weights and hash. Change any input and you get a different model, not a recoloured one.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button className="act" onClick={() => setDraft(draftFromSeed(Math.random().toString(36).slice(2, 10), draft.form))}>surprise me</button>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])} />
-          <button className="act" onClick={() => fileRef.current?.click()}>import json</button>
-          <button className="act" disabled={!model} onClick={exportJson}>export json</button>
+          <button className="act" onClick={() => fileRef.current?.click()}>Import JSON</button>
+          <button className="act" disabled={!model} onClick={exportJson}>Export JSON</button>
           <button className="act-ghost" disabled={!model || busy} onClick={() => save(false)}>save</button>
           <button className="act-primary" disabled={!model || busy} onClick={() => save(true)} data-testid="save-and-open">save & open in lab</button>
         </div>
       </div>
       <ErrorBox error={err} />
-      <div className="grid gap-px border-y hair bg-line lg:grid-cols-[340px_minmax(0,1fr)_300px]">
-        <div className="bg-bg p-4"><ConfigForm draft={draft} onChange={setDraft} /></div>
-        <div className="relative min-h-[520px] bg-bg">
+      <div className="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)_300px]">
+        <div className="panel p-5"><ConfigForm draft={draft} onChange={setDraft} /></div>
+        <div className="panel relative min-h-[560px] overflow-hidden">
           {model ? <GraphCanvas model={model} form={draft.form} palette={draft.palette} activations={acts} className="absolute inset-0" /> : <div className="flex h-full items-center justify-center p-6 text-bad">{issues[0]}</div>}
           <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-1">
-            {VISUAL_FORMS.map((f) => <button key={f} className="act-ghost !px-2 !py-0.5 bg-bg/70" aria-pressed={draft.form === f} onClick={() => setDraft({ ...draft, form: f })}>{f.toLowerCase()}</button>)}
+            {VISUAL_FORMS.map((f) => <button key={f} className="act-ghost" aria-pressed={draft.form === f} onClick={() => setDraft({ ...draft, form: f })}>{f.toLowerCase()}</button>)}
           </div>
         </div>
-        <div className="flex flex-col gap-4 bg-bg p-4">
+        <div className="flex flex-col gap-5">
           {model && (
             <>
               <Panel title="identity">
-                <dl className="kv text-[11px]" data-testid="generator-hashes">
+                <dl className="kv text-[12.5px]" data-testid="generator-hashes">
                   <dt>model id</dt><dd>{model.id}</dd>
                   <dt>config hash</dt><dd><Hash value={model.configHash} /></dd>
                   <dt>artifact</dt><dd><Hash value={model.artifactHash} /></dd>
@@ -124,14 +123,14 @@ export function Generator() {
               </Panel>
               <Panel title="weight distribution"><Histogram model={model} /></Panel>
               <Panel title="layers">
-                <table className="w-full text-[11px] tnum">
+                <table className="w-full text-[12.5px] tnum">
                   <thead><tr className="text-left text-muted"><th className="font-normal">L</th><th className="font-normal">shape</th><th className="font-normal">fn</th><th className="font-normal text-right">kept</th></tr></thead>
                   <tbody>{model.layers.map((L, i) => (
-                    <tr key={i} className="border-t hair"><td>{i + 1}</td><td>{L.inDim}→{L.outDim}{L.residualFrom !== undefined ? ` +L${L.residualFrom}` : ""}</td><td>{L.activation}</td><td className="text-right">{L.mask ? `${Math.round((Array.from(L.mask).reduce((a, b) => a + b, 0) / L.mask.length) * 100)}%` : "100%"}</td></tr>
+                    <tr key={i} className="border-t border-line"><td>{i + 1}</td><td>{L.inDim}→{L.outDim}{L.residualFrom !== undefined ? ` +L${L.residualFrom}` : ""}</td><td>{L.activation}</td><td className="text-right">{L.mask ? `${Math.round((Array.from(L.mask).reduce((a, b) => a + b, 0) / L.mask.length) * 100)}%` : "100%"}</td></tr>
                   ))}</tbody>
                 </table>
               </Panel>
-              <p className="text-[10.5px] text-faint">Generated, not trained. Outputs of an untrained model reflect its random initialisation only.</p>
+              <p className="text-[12px] text-faint">Generated, not trained. Outputs of an untrained model reflect its random initialisation only.</p>
             </>
           )}
         </div>

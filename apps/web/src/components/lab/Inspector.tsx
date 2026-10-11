@@ -10,7 +10,7 @@ export interface InspectorMeta { row?: ModelRow | null; lastExperiment?: string 
 export function NetworkFacts({ model, meta }: { model: Model; meta?: InspectorMeta }) {
   const acts = [...new Set(model.layers.map((l) => l.activation))];
   return (
-    <dl className="kv text-[11px]" data-testid="network-facts">
+    <dl className="kv text-[12.5px]" data-testid="network-facts">
       <dt>network id</dt><dd>{model.id}</dd>
       <dt>owner</dt><dd>{meta?.row?.owner_wallet ? short(meta.row.owner_wallet, 5) : meta?.persisted ? "anonymous" : "unsaved (local)"}</dd>
       <dt>created</dt><dd>{meta?.row ? new Date(meta.row.created_at).toISOString().replace("T", " ").slice(0, 19) + "Z" : "—"}</dd>
@@ -39,7 +39,7 @@ export function SelectionDetail({ model, hit, acts, history }: { model: Model; h
     const e = G.edges[hit.e]; const s = G.nodes[e.s], t = G.nodes[e.t];
     const a = acts?.[s.layer]?.[s.index];
     return (
-      <dl className="kv text-[11px]" data-testid="edge-detail">
+      <dl className="kv text-[12.5px]" data-testid="edge-detail">
         <dt>edge</dt><dd>#{e.e} · {e.kind === "skip" ? "identity skip (w = 1, fixed)" : "learnable weight"}</dd>
         <dt>from</dt><dd>{model.id}:{s.layer}.{s.index}</dd>
         <dt>to</dt><dd>{model.id}:{t.layer}.{t.index}</dd>
@@ -56,7 +56,7 @@ export function SelectionDetail({ model, hit, acts, history }: { model: Model; h
   const recent = history.map((h) => h[n.layer]?.[n.index]).filter((v) => v !== undefined) as number[];
   const lab = (g: number) => `${G.nodes[g].layer}.${G.nodes[g].index}`;
   return (
-    <div className="flex flex-col gap-3 text-[11px]" data-testid="neuron-detail">
+    <div className="flex flex-col gap-3 text-[12.5px]" data-testid="neuron-detail">
       <dl className="kv">
         <dt>neuron</dt><dd>{model.id}:{n.layer}.{n.index}</dd>
         <dt>owner</dt><dd className="text-muted">model owner</dd>

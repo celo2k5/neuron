@@ -308,8 +308,8 @@ export class GraphRenderer {
       const m = (b % 4) / 3;
       c.beginPath();
       for (const ei of buckets[b]) this.trace2d(this.paths[ei]);
-      c.strokeStyle = withAlpha(b < 4 ? pos : neg, (dense ? 0.05 : 0.09) + m * (dense ? 0.22 : 0.4) * (this.trace && !traceDone ? 0.6 : 1));
-      c.lineWidth = lw * (0.5 + m * 1.6);
+      c.strokeStyle = withAlpha(b < 4 ? pos : neg, (dense ? 0.035 : 0.06) + m * m * (dense ? 0.2 : 0.38) * (this.trace && !traceDone ? 0.6 : 1));
+      c.lineWidth = lw * (0.45 + m * 1.1);
       if (b >= 4 && this.colors.pos === this.colors.neg) c.setLineDash([3 * lw, 3 * lw]);
       c.stroke();
       c.setLineDash([]);
@@ -373,16 +373,20 @@ export class GraphRenderer {
       }
       if (this.opts.ambient && !this.reducedMotion && L.form === "CONSTELLATION") { r *= 0.85 + 0.3 * (0.5 + 0.5 * Math.sin(ambientT * 1.3 + n.g * 1.7)); animating = true; }
       const base = isIn ? this.colors.accent2 : isOut ? this.colors.accent : this.colors.node;
-      if (lit && act > 0.02) {
-        const fade = traceDone ? 0.55 : 1;
-        c.beginPath(); c.arc(x, y, r * (1.5 + act * 1.9), 0, Math.PI * 2);
-        c.fillStyle = withAlpha(this.colorGlow(), 0.1 + 0.25 * act * fade); c.fill();
-      }
+      // soft halo: always present, swells with activation
+      const glowR = r * (2.4 + act * 3.2);
+      const halo = c.createRadialGradient(x, y, 0, x, y, glowR);
+      const hA = this.trace ? (lit ? 0.1 + 0.4 * act * (traceDone ? 0.6 : 1) : 0.04) : (isIn || isOut ? 0.16 : 0.09);
+      halo.addColorStop(0, withAlpha(lit && act > 0.02 ? this.colorGlow() : base, hA));
+      halo.addColorStop(1, withAlpha(base, 0));
+      c.fillStyle = halo;
+      c.beginPath(); c.arc(x, y, glowR, 0, Math.PI * 2); c.fill();
       c.beginPath();
-      if (L.form === "CIRCUIT") c.rect(x - r, y - r, r * 2, r * 2); else c.arc(x, y, r * (1 + act * 0.5), 0, Math.PI * 2);
-      c.fillStyle = withAlpha(base, this.trace ? (lit ? 0.35 + 0.65 * act : 0.25) : 0.9);
+      const rr = r * 0.62 * (1 + act * 0.45);
+      if (L.form === "CIRCUIT") c.rect(x - rr, y - rr, rr * 2, rr * 2); else c.arc(x, y, rr, 0, Math.PI * 2);
+      c.fillStyle = withAlpha(base, this.trace ? (lit ? 0.4 + 0.6 * act : 0.28) : 0.95);
       c.fill();
-      if (isOut || isIn) { c.lineWidth = lw; c.strokeStyle = withAlpha(base, 0.9); c.stroke(); }
+      if (isOut || isIn) { c.beginPath(); c.arc(x, y, r * 1.25, 0, Math.PI * 2); c.lineWidth = lw * 0.8; c.strokeStyle = withAlpha(base, 0.45); c.stroke(); }
       const sel = (this.selected?.type === "node" && this.selected.g === n.g) || (this.hover?.type === "node" && this.hover.g === n.g);
       if (sel) { c.beginPath(); c.arc(x, y, r + 5 * lw * Math.max(1, 1 / s), 0, Math.PI * 2); c.lineWidth = lw * 1.2; c.strokeStyle = this.colors.fg; c.stroke(); }
     }
@@ -390,7 +394,7 @@ export class GraphRenderer {
     // labels in screen space
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (this.opts.labels && this.model) {
-      c.font = `10px ${getComputedStyle(this.canvas).fontFamily}`;
+      c.font = `11px ${(getComputedStyle(document.documentElement).getPropertyValue("--font-geist-mono") || "ui-monospace") + ", ui-monospace, monospace"}`;
       c.textAlign = "center";
       c.fillStyle = this.colors.muted;
       const acts = [null, ...this.model.layers.map((l) => l.activation)];
@@ -399,7 +403,7 @@ export class GraphRenderer {
         for (let i = 0; i < n; i++) { const g = G.layerStart[l] + i; mx += this.px[g]; my = Math.max(my, this.py[g]); }
         const sx = (mx / n) * s + tx, sy = my * s + ty + 18;
         if (sx < -50 || sx > this.w + 50 || L.form === "FRACTAL") continue;
-        c.fillText(`L${l} · ${l === 0 ? "in" : acts[l]} · ${n}`, sx, Math.min(this.h - 6, sy));
+        c.fillText(`${l === 0 ? "input" : acts[l]} · ${n}`, sx, Math.min(this.h - 6, sy));
       }
       if (this.trace && tElapsed >= (G.layerSize.length - 1) * step) {
         const lo = G.layerSize.length - 1;

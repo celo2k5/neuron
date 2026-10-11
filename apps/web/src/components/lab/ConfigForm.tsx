@@ -33,13 +33,13 @@ export function resolveDraft(d: Draft): ModelConfig {
 export const randomSeed = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("");
 
 function Mini({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
-  return <div className="flex min-w-0 flex-col gap-1"><label htmlFor={htmlFor} className="label !text-[9.5px]">{label}</label>{children}</div>;
+  return <div className="flex min-w-0 flex-col gap-1"><label htmlFor={htmlFor} className="label !text-[11.5px]">{label}</label>{children}</div>;
 }
 
 function Row({ label, htmlFor, children, hint }: { label: string; htmlFor?: string; children: React.ReactNode; hint?: string }) {
   return (
     <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2">
-      <label htmlFor={htmlFor} className="label !text-[9.5px]" title={hint}>{label}</label>
+      <label htmlFor={htmlFor} className="label !text-[11.5px]" title={hint}>{label}</label>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -60,7 +60,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
       <Row label="seed" htmlFor="f-seed">
         <div className="flex gap-1">
           <input id="f-seed" className="field tnum" maxLength={64} value={draft.seed} onChange={(e) => set("seed", e.target.value || "0")} data-testid="seed-input" />
-          <button type="button" className="act-ghost !px-2" title="New random seed" aria-label="New random seed" onClick={() => set("seed", randomSeed())}>⟳</button>
+          <button type="button" className="act-ghost" title="New random seed" aria-label="New random seed" onClick={() => set("seed", randomSeed())}>⟳</button>
         </div>
       </Row>
       <Row label="architecture" htmlFor="f-arch">
@@ -77,7 +77,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
       </div>
       <Row label="widths">
         <div className="flex gap-1" role="radiogroup" aria-label="Width mode">
-          {(["seeded", "manual"] as const).map((m) => <button key={m} type="button" className="act-ghost !px-2 !py-0.5" aria-pressed={draft.widthMode === m} onClick={() => set("widthMode", m)}>{m}</button>)}
+          {(["seeded", "manual"] as const).map((m) => <button key={m} type="button" className="act-ghost" aria-pressed={draft.widthMode === m} onClick={() => set("widthMode", m)}>{m}</button>)}
         </div>
       </Row>
       {draft.widthMode === "seeded" ? (
@@ -93,7 +93,7 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
       )}
       <Row label="activations">
         <div className="flex gap-1">
-          {(["seeded", "uniform"] as const).map((m) => <button key={m} type="button" className="act-ghost !px-2 !py-0.5" aria-pressed={draft.actMode === m} onClick={() => set("actMode", m)}>{m}</button>)}
+          {(["seeded", "uniform"] as const).map((m) => <button key={m} type="button" className="act-ghost" aria-pressed={draft.actMode === m} onClick={() => set("actMode", m)}>{m}</button>)}
           {draft.actMode === "uniform" && (
             <select aria-label="Hidden activation" className="field !w-auto" value={draft.act} onChange={(e) => set("act", e.target.value as Activation)}>
               {ACTIVATIONS.map((a) => <option key={a}>{a}</option>)}
@@ -120,11 +120,11 @@ export function ConfigForm({ draft, onChange, compact = false }: { draft: Draft;
             <select id="f-form" className="field" value={draft.form} onChange={(e) => set("form", e.target.value as VisualForm)}>{VISUAL_FORMS.map((f) => <option key={f}>{f}</option>)}</select>
           </Row>
           <Row label="palette">
-            <div className="flex gap-1">{(["theme", "seed"] as const).map((m) => <button key={m} type="button" className="act-ghost !px-2 !py-0.5" aria-pressed={draft.palette === m} onClick={() => set("palette", m)}>{m}</button>)}</div>
+            <div className="flex gap-1">{(["theme", "seed"] as const).map((m) => <button key={m} type="button" className="act-ghost" aria-pressed={draft.palette === m} onClick={() => set("palette", m)}>{m}</button>)}</div>
           </Row>
         </>
       )}
-      <div className="mt-1 border-t hair pt-2 text-[10.5px]">
+      <div className="mt-1 border-t border-line pt-2 text-[12px]">
         <div className="tnum text-muted">resolved · {[cfg.inputDim, ...cfg.hidden, cfg.outputDim].join("·")} · {cfg.activations.join(", ")} → {cfg.outputActivation}</div>
         {issues.length > 0 && <ul role="alert" className="mt-1 text-bad">{issues.map((i) => <li key={i}>— {i}</li>)}</ul>}
       </div>

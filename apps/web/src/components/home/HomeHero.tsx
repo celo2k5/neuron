@@ -1,114 +1,82 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { forward, generateModel, parameterCount, connectionCount, VISUAL_FORMS, type VisualForm } from "@neuron/engine";
-import { GraphCanvas } from "../GraphCanvas";
-import { VectorBars, fmt, short } from "../ui";
+import { useEffect, useMemo, useState } from "react";
+import { forward, generateModel, parameterCount, connectionCount } from "@neuron/engine";
+import { Specimen3D } from "../Specimen3D";
+import { short } from "../ui";
 import { HERO_CONFIG, seededInput } from "@/lib/client/specimens";
 
-/** Real computation on loop: a seeded input every few seconds, propagated through the hero specimen. */
+/** Real computation on a loop: a seeded input every few seconds, propagated through the hero specimen. */
 export function HomeHero() {
   const model = useMemo(() => generateModel(HERO_CONFIG), []);
-  const [form, setForm] = useState<VisualForm>("CONSTELLATION");
-  const [run, setRun] = useState<{ n: number; input: number[]; acts: number[][]; output: number[]; ms: number } | null>(null);
+  const [run, setRun] = useState<{ n: number; acts: number[][]; output: number[]; ms: number } | null>(null);
   const [paused, setPaused] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
-  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     if (paused) return;
     let n = run?.n ?? 0;
     const go = () => {
       n++;
-      const input = seededInput(`hero-${n}`, model.config.inputDim);
       const t0 = performance.now();
-      const tr = forward(model, input);
-      setRun({ n, input, acts: tr.a.map((v) => Array.from(v)), output: tr.output, ms: performance.now() - t0 });
+      const tr = forward(model, seededInput(`hero-${n}`, model.config.inputDim));
+      setRun({ n, acts: tr.a.map((v) => Array.from(v)), output: tr.output, ms: performance.now() - t0 });
     };
-    go();
-    const t = setInterval(go, 3600);
-    return () => clearInterval(t);
+    const first = setTimeout(go, 1400);
+    const t = setInterval(go, 4200);
+    return () => { clearTimeout(first); clearInterval(t); };
   }, [model, paused]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    const on = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", on, { passive: true });
-    return () => window.removeEventListener("scroll", on);
-  }, []);
-
   const argmax = run ? run.output.indexOf(Math.max(...run.output)) : -1;
-  const par = Math.min(1, scrollY / 700);
-
   return (
-    <section className="relative border-b hair" aria-labelledby="hero-h">
-      <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(var(--line)_1px,transparent_1px)] [background-size:18px_18px]" aria-hidden />
-      <div className="relative mx-auto grid max-w-[1600px] gap-0 px-4 lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)_minmax(220px,260px)]">
-        {/* left: thesis + entry points */}
-        <div className="flex flex-col justify-between gap-8 border-line py-8 lg:border-r lg:pr-6">
-          <div>
-            <div className="label">§ 00 · specimen {model.id}</div>
-            <h1 id="hero-h" className="display mt-4 text-[40px] sm:text-[60px] lg:text-[40px] xl:text-[48px]">
-              INTELLIGENCE<br />IS A<br /><span className="text-accent">NETWORK.</span>
-            </h1>
-            <p className="mt-5 max-w-[34ch] text-[13px] text-muted">Create neurons. Build networks. Run experiments. Watch computation become visible.</p>
-            <div className="mt-6 flex flex-wrap items-center gap-4">
-              <Link href="/lab" className="act-primary no-underline">enter the lab →</Link>
-              <Link href="/networks" className="act">explore networks</Link>
-            </div>
-          </div>
-          <div className="text-[10.5px] text-muted">
-            <p>What you see is the actual graph of a generated residual network. Every pulse is a real weighted contribution |w·a| computed by the engine in your browser.</p>
-            <p className="mt-2 text-faint">Generated, not trained: these weights came from a seed, so the outputs carry no learned meaning.</p>
+    <section className="relative min-h-[100svh] overflow-hidden" aria-labelledby="hero-h">
+      <Specimen3D model={model} activations={run?.acts} className="absolute inset-0" bloom={1} framing={1.0} offsetX={0.17} offsetY={0.06}
+        ariaLabel={`Specimen ${model.id}: a ${model.config.architecture} network with ${connectionCount(model)} connections, rotating while it runs live inference`} />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,var(--bg)_0%,color-mix(in_srgb,var(--bg)_70%,transparent)_28%,transparent_55%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(0deg,var(--bg),transparent)]" aria-hidden />
+
+      <div className="pointer-events-none relative mx-auto flex min-h-[100svh] max-w-[1440px] flex-col justify-end px-5 pb-14 pt-28 sm:px-8 lg:pb-20">
+        <div className="pointer-events-auto max-w-[640px]">
+          <h1 id="hero-h" className="display rise text-[clamp(52px,8.2vw,124px)]">Intelligence is a network.</h1>
+          <p className="rise mt-6 max-w-[46ch] text-[17px] leading-[1.55] text-muted [animation-delay:.15s]">
+            Create neurons. Build networks. Run experiments. Watch computation become visible.
+          </p>
+          <p className="rise mt-3 max-w-[46ch] text-[13px] text-faint [animation-delay:.2s]">A real generated network, running live in your browser. Seeded, not trained.</p>
+          <div className="rise mt-9 flex flex-wrap items-center gap-5 [animation-delay:.3s]">
+            <Link href="/lab" className="act-primary no-underline">Enter the lab</Link>
+            <Link href="/networks" className="act">Explore networks</Link>
           </div>
         </div>
-
-        {/* center: the instrument */}
-        <div ref={wrap} className="relative min-h-[460px] lg:min-h-[640px]" style={{ transform: `translateY(${par * 40}px)`, opacity: 1 - par * 0.35 }}>
-          <GraphCanvas model={model} form={form} activations={run?.acts} className="absolute inset-0" toolbar ariaLabel={`Hero specimen ${model.id}, ${form.toLowerCase()} view`} />
-          <div className="absolute bottom-3 left-3 right-3 z-10 flex flex-wrap items-center gap-1" role="radiogroup" aria-label="Visual form">
-            {VISUAL_FORMS.map((f) => (
-              <button key={f} role="radio" aria-checked={f === form} className={`act-ghost !py-0.5 bg-bg/70 ${f === form ? "!border-accent !text-accent" : ""}`} onClick={() => setForm(f)}>{f.toLowerCase()}</button>
-            ))}
-            <button className="act ml-auto" onClick={() => setPaused((p) => !p)}>{paused ? "resume" : "pause"} inference</button>
-          </div>
-        </div>
-
-        {/* right: readouts */}
-        <aside className="flex flex-col gap-5 border-line py-8 text-[11px] lg:border-l lg:pl-5" aria-label="Live readouts">
-          <div>
-            <div className="label">run</div>
-            <div className="display mt-1 text-[44px] tnum">#{String(run?.n ?? 0).padStart(4, "0")}</div>
-            <div className="tnum text-muted">{run ? `${fmt(run.ms, 3)} ms · seed hero-${run.n}` : "…"}</div>
-          </div>
-          <div>
-            <div className="label mb-1">input x ∈ ℝ{model.config.inputDim}</div>
-            {run && <VectorBars values={run.input} color="var(--accent-2)" />}
-          </div>
-          <div>
-            <div className="label mb-1">layer activations</div>
-            <div className="flex flex-col gap-1">
-              {run?.acts.slice(1, -1).map((a, i) => (
-                <div key={i} className="grid grid-cols-[22px_1fr] items-center gap-2"><span className="text-faint tnum">L{i + 1}</span><VectorBars values={a} height={14} /></div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="label mb-1">softmax output</div>
-            <ul className="tnum">
-              {run?.output.map((v, i) => (
-                <li key={i} className={`flex justify-between ${i === argmax ? "text-accent" : ""}`}><span>y{i}</span><span>{v.toFixed(5)}</span></li>
-              ))}
-            </ul>
-          </div>
-          <dl className="kv mt-auto text-[10.5px]">
-            <dt>arch</dt><dd>{model.config.architecture}</dd>
-            <dt>shape</dt><dd>{[model.config.inputDim, ...model.config.hidden, model.config.outputDim].join("·")}</dd>
-            <dt>params</dt><dd>{parameterCount(model)}</dd>
-            <dt>edges</dt><dd>{connectionCount(model)}</dd>
-            <dt>artifact</dt><dd title={model.artifactHash}>{short(model.artifactHash, 6)}</dd>
-          </dl>
-        </aside>
       </div>
+
+      <aside aria-label="Live inference" className="glass-chip rise absolute bottom-16 right-5 hidden w-[560px] grid-cols-[170px_1fr] gap-6 p-5 [animation-delay:.6s] sm:right-8 lg:bottom-20 lg:grid">
+        <div className="border-r border-line pr-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="whitespace-nowrap text-[12.5px] text-muted">Live inference</span>
+            <button className="act text-[12px]" onClick={() => setPaused((p) => !p)}>{paused ? "Resume" : "Pause"}</button>
+          </div>
+          <div className="mt-2 font-serif-d text-[40px] leading-none tnum" data-testid="hero-run">#{String(run?.n ?? 0).padStart(4, "0")}</div>
+          <div className="mt-2 tnum text-[11.5px] text-muted">{run ? `${run.ms.toFixed(2)} ms` : "warming up"}</div>
+        </div>
+        <div className="min-w-0">
+          <ul className="grid grid-cols-2 gap-x-5 gap-y-2" aria-label="Softmax output">
+            {(run?.output ?? Array(model.config.outputDim).fill(0)).map((v, i) => (
+              <li key={i} className="grid grid-cols-[20px_1fr_48px] items-center gap-2 text-[12px]">
+                <span className={`tnum ${i === argmax ? "text-accent-2" : "text-muted"}`}>y{i}</span>
+                <span className="h-[3px] overflow-hidden rounded-full bg-fg/10">
+                  <span className="block h-full rounded-full bg-[linear-gradient(90deg,var(--accent),var(--accent-2))] transition-[width] duration-700 ease-out" style={{ width: `${v * 100}%` }} />
+                </span>
+                <span className={`tnum text-right ${i === argmax ? "text-fg" : "text-muted"}`}>{v.toFixed(3)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="hairline-glow my-3" />
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-muted">
+            <span>Shape <span className="tnum text-fg">{[model.config.inputDim, ...model.config.hidden, model.config.outputDim].join("·")}</span></span>
+            <span>{parameterCount(model).toLocaleString()} parameters</span>
+            <span title={model.artifactHash}>Artifact <span className="tnum text-fg">{short(model.artifactHash, 5)}</span></span>
+          </p>
+        </div>
+      </aside>
     </section>
   );
 }

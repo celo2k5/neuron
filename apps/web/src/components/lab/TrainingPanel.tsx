@@ -29,25 +29,25 @@ export function TrainingPanel({ model, persistedModelId, onPreviewWeights, onLoa
 
   const set = <K extends keyof typeof opts>(k: K, v: (typeof opts)[K]) => setOpts((o) => ({ ...o, [k]: v }));
   const field = (k: "learningRate" | "epochs" | "batchSize" | "valFraction" | "samples", label: string, step: number, min: number, max: number) => (
-    <label className="grid grid-cols-[86px_1fr] items-center gap-2"><span className="label !text-[9.5px]">{label}</span>
+    <label className="grid grid-cols-[86px_1fr] items-center gap-2"><span className="label !text-[11.5px]">{label}</span>
       <input className="field tnum" type="number" step={step} min={min} max={max} value={opts[k]} onChange={(e) => set(k, Number(e.target.value))} /></label>
   );
 
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]" data-testid="training-panel">
       <div className="flex flex-col gap-2">
-        <label className="grid grid-cols-[86px_1fr] items-center gap-2"><span className="label !text-[9.5px]">dataset</span>
+        <label className="grid grid-cols-[86px_1fr] items-center gap-2"><span className="label !text-[11.5px]">dataset</span>
           <select className="field" value={dataset} onChange={(e) => setDataset(e.target.value as DatasetId)}>
             {DATASETS.map((d) => <option key={d.id} value={d.id} disabled={!compatible.find((c) => c.id === d.id)}>{d.title} ({d.inputDim}→{d.outputDim})</option>)}
           </select></label>
         {!compatible.length && (
-          <div className="border border-warn/50 p-2 text-[11px] text-warn">
+          <div className="border border-warn/50 p-2 text-[12.5px] text-warn">
             No curated dataset matches {model.config.inputDim}→{model.config.outputDim}.
             <button className="act ml-1" onClick={() => onAdapt({ inputDim: 2, outputDim: 2, outputActivation: "softmax" })}>regenerate as 2→2 softmax</button>
           </div>
         )}
-        <p className="text-[10.5px] text-muted">{DATASETS.find((d) => d.id === dataset)?.note}</p>
-        <label className="grid grid-cols-[86px_1fr] items-center gap-2"><span className="label !text-[9.5px]">optimizer</span>
+        <p className="text-[12px] text-muted">{DATASETS.find((d) => d.id === dataset)?.note}</p>
+        <label className="grid grid-cols-[86px_1fr] items-center gap-2"><span className="label !text-[11.5px]">optimizer</span>
           <select className="field" value={opts.optimizer} onChange={(e) => set("optimizer", e.target.value as "sgd" | "adam")}><option value="adam">adam</option><option value="sgd">sgd + momentum</option></select></label>
         {field("learningRate", "learn rate", 0.001, TRAIN_LIMITS.minLr, TRAIN_LIMITS.maxLr)}
         {field("epochs", "epochs", 10, 1, TRAIN_LIMITS.maxEpochs)}
@@ -55,10 +55,10 @@ export function TrainingPanel({ model, persistedModelId, onPreviewWeights, onLoa
         {field("valFraction", "val split", 0.05, 0.05, 0.5)}
         {field("samples", "samples", 20, 16, TRAIN_LIMITS.maxDataset)}
         <div className="mt-1 flex gap-1" role="radiogroup" aria-label="Where to train">
-          <button className="act-ghost !px-2 !py-0.5" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>browser preview</button>
-          <button className="act-ghost !px-2 !py-0.5" aria-pressed={mode === "server"} onClick={() => setMode("server")}>train on neuron</button>
+          <button className="act-ghost" aria-pressed={mode === "preview"} onClick={() => setMode("preview")}>browser preview</button>
+          <button className="act-ghost" aria-pressed={mode === "server"} onClick={() => setMode("server")}>train on neuron</button>
         </div>
-        {issues.length > 0 && <ul role="alert" className="text-[11px] text-bad">{issues.map((i) => <li key={i}>— {i}</li>)}</ul>}
+        {issues.length > 0 && <ul role="alert" className="text-[12.5px] text-bad">{issues.map((i) => <li key={i}>— {i}</li>)}</ul>}
       </div>
       <div className="min-w-0">
         {mode === "preview"
@@ -103,7 +103,7 @@ function Preview({ model, dataset, opts, ds, disabled, onWeights }: { model: Mod
         <button className="act-primary" disabled={disabled || state === "running"} onClick={start} data-testid="preview-train">{state === "running" ? "training…" : "train in browser"}</button>
         {state === "running" && <button className="act" onClick={() => worker.current?.postMessage({ type: "stop" })}>stop</button>}
         {live && <button className="act" onClick={() => { setLive(null); onWeights(null); }}>revert graph to saved weights</button>}
-        <span className="text-[10.5px] text-muted">Preview only: runs in a Web Worker on this device and is not saved. Use “train on neuron” for checkpoints.</span>
+        <span className="text-[12px] text-muted">Preview only: runs in a Web Worker on this device and is not saved. Use “train on neuron” for checkpoints.</span>
       </div>
       <Metrics hist={hist} baseline={baseline} epochs={opts.epochs} cls={ds.task === "classification"} />
       <div className="flex flex-wrap gap-4">
@@ -119,7 +119,7 @@ function Metrics({ hist, baseline, epochs, cls }: { hist: { epoch: number; train
   return (
     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
       <LossChart baseline={baseline?.valLoss} series={[{ name: "train", values: hist.map((h) => h.trainLoss), color: "var(--accent)" }, { name: "validation", values: hist.map((h) => h.valLoss), color: "var(--accent-2)", dash: true }]} />
-      <dl className="kv text-[11px]" data-testid="training-metrics">
+      <dl className="kv text-[12.5px]" data-testid="training-metrics">
         <dt>epoch</dt><dd className="tnum">{last?.epoch ?? 0} / {epochs}</dd>
         <dt>train loss</dt><dd className="tnum">{fmt(last?.trainLoss, 5)}</dd>
         <dt>val loss</dt><dd className="tnum">{fmt(last?.valLoss, 5)}</dd>
@@ -162,7 +162,7 @@ function Server({ model, persistedModelId, dataset, opts, ds, disabled, onLoadVe
       {!t && (
         <div className="flex flex-wrap items-center gap-3">
           {!confirm ? <button className="act-primary" disabled={disabled} onClick={() => setConfirm(true)} data-testid="server-train">train on neuron…</button> : (
-            <div className="border border-accent/60 p-2 text-[11px]" role="alertdialog" aria-label="Confirm training job">
+            <div className="border border-accent/60 p-2 text-[12.5px]" role="alertdialog" aria-label="Confirm training job">
               <p>Train <b>{model.id} v{model.version}</b> on <b>{dataset}</b> for {opts.epochs} epochs.</p>
               <p className="text-muted">{free ? `Free tier: up to ${cfg?.freeTrainingPerDay}/day at ≤ ${cfg?.freeTrainingMaxEpochs} epochs. If you have used today's free runs, credits are reserved first and unused credits are released if you cancel.` : "Above the free epoch cap: credits are reserved up front (exact amount shown in the result), and unused credits are released on cancel or failure."}</p>
               <div className="mt-2 flex gap-3"><button className="act-primary" onClick={start} data-testid="confirm-train">confirm</button><button className="act" onClick={() => setConfirm(false)}>back</button></div>
@@ -172,7 +172,7 @@ function Server({ model, persistedModelId, dataset, opts, ds, disabled, onLoadVe
       )}
       {t && (
         <>
-          <div className="flex flex-wrap items-center gap-3 text-[11px]">
+          <div className="flex flex-wrap items-center gap-3 text-[12.5px]">
             <StatusPill status={t.status} /><span className="tnum text-muted">job {t.id.slice(0, 8)} · {t.credits_reserved} credits reserved</span>
             {t.status === "running" && <><button className="act" onClick={() => act("pause")}>pause</button><button className="act" onClick={() => act("cancel")}>cancel</button></>}
             {t.status === "queued" && <button className="act" onClick={() => act("cancel")}>cancel</button>}
@@ -181,14 +181,14 @@ function Server({ model, persistedModelId, dataset, opts, ds, disabled, onLoadVe
           </div>
           <Metrics hist={t.history} baseline={t.baseline} epochs={t.options.epochs} cls={ds.task === "classification"} />
           {t.error && <ErrorBox error={{ message: t.error }} />}
-          {t.resource && <p className="text-[10.5px] text-muted tnum">isolated worker thread · peak heap {t.resource.peakHeapMb} MB · {fmt(t.resource.ms / 1000, 2)} s wall</p>}
+          {t.resource && <p className="text-[12px] text-muted tnum">isolated worker thread · peak heap {t.resource.peakHeapMb} MB · {fmt(t.resource.ms / 1000, 2)} s wall</p>}
           <div>
             <div className="label mb-1">immutable checkpoints</div>
             {t.checkpoints.length === 0 ? <p className="text-faint">none yet</p> : (
-              <table className="w-full text-[11px] tnum" data-testid="checkpoints">
+              <table className="w-full text-[12.5px] tnum" data-testid="checkpoints">
                 <thead><tr className="text-left text-muted"><th className="font-normal">version</th><th className="font-normal">epoch</th><th className="font-normal">val loss</th><th className="font-normal">val acc</th><th className="font-normal">artifact</th><th /></tr></thead>
                 <tbody>{t.checkpoints.map((c) => (
-                  <tr key={c.id} className="border-t hair"><td>v{c.version}</td><td>{c.epoch}</td><td>{fmt(c.metrics.valLoss, 5)}</td><td>{c.metrics.valAcc !== undefined ? `${(c.metrics.valAcc * 100).toFixed(1)}%` : "—"}</td><td><Hash value={c.artifact_hash} n={5} /></td>
+                  <tr key={c.id} className="border-t border-line"><td>v{c.version}</td><td>{c.epoch}</td><td>{fmt(c.metrics.valLoss, 5)}</td><td>{c.metrics.valAcc !== undefined ? `${(c.metrics.valAcc * 100).toFixed(1)}%` : "—"}</td><td><Hash value={c.artifact_hash} n={5} /></td>
                     <td className="text-right"><button className="act" onClick={() => onLoadVersion(c.version)}>load</button></td></tr>
                 ))}</tbody>
               </table>

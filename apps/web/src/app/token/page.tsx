@@ -43,15 +43,14 @@ export default function TokenPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 pt-8">
-      <div className="label">§ token</div>
-      <Scramble as="h1" text="$NEURON · ONE TOKEN" className="display mt-2 block text-[40px]" />
+    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
+      <Scramble as="h1" text="One token." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
       <p className="mt-2 max-w-[78ch] text-muted">Browsing and a daily allowance of experiments are free. $NEURON buys credits for persisted experiments beyond the free tier, training jobs and neuron registration. Holding tokens does not make any model more intelligent.</p>
       {cfg?.blockers.length ? <div className="mt-4 border border-warn/60 p-3 text-warn"><div className="label !text-warn">integration not configured</div><ul className="mt-1">{cfg.blockers.map((b) => <li key={b}>— {b}</li>)}</ul></div> : null}
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Panel title="mint (read from chain)">
           {!cfg?.mint ? <p className="text-muted">No mint configured.</p> : tok.isLoading ? <Spinner /> : tok.error ? <ErrorBox error={tok.error} /> : tok.data && (
-            <dl className="kv text-[11px]" data-testid="token-info">
+            <dl className="kv text-[12.5px]" data-testid="token-info">
               <dt>cluster</dt><dd>{tok.data.cluster}{tok.data.cluster !== "mainnet-beta" && <span className="text-warn"> · test token</span>}</dd>
               <dt>mint</dt><dd className="break-all">{tok.data.mint}</dd>
               <dt>decimals</dt><dd>{tok.data.decimals}</dd>
@@ -66,7 +65,7 @@ export default function TokenPage() {
               {(["available", "reserved", "consumed", "refunded"] as const).map((k) => <div key={k}><dt className="label">{k}</dt><dd className="display text-[32px] tnum">{credits.data.balance[k]}</dd></div>)}
             </dl>
           )}
-          <p className="mt-2 text-[10.5px] text-muted">Free daily: {cfg?.freeExperimentsPerDay} saved experiments, {cfg?.freeTrainingPerDay} training jobs ≤ {cfg?.freeTrainingMaxEpochs} epochs. Registration: {cfg?.registrationCredits} credits.</p>
+          <p className="mt-2 text-[12px] text-muted">Free daily: {cfg?.freeExperimentsPerDay} saved experiments, {cfg?.freeTrainingPerDay} training jobs ≤ {cfg?.freeTrainingMaxEpochs} epochs. Registration: {cfg?.registrationCredits} credits.</p>
         </Panel>
         <Panel title="buy credits" meta={`1 credit = ${price} $NEURON`}>
           {!session.data?.session ? <p className="text-muted">Sign in first.</p> : !review ? (
@@ -76,7 +75,7 @@ export default function TokenPage() {
               <button className="act-primary" disabled={busy || !!cfg?.blockers.length} onClick={createIntent} data-testid="create-intent">review payment</button>
             </div>
           ) : (
-            <div className="border border-accent/60 p-2 text-[11px]" role="alertdialog" aria-label="Review payment" data-testid="payment-review">
+            <div className="border border-accent/60 p-2 text-[12.5px]" role="alertdialog" aria-label="Review payment" data-testid="payment-review">
               <dl className="kv">
                 <dt>you pay</dt><dd className="text-accent">{review.display.amount} {review.display.symbol}</dd>
                 <dt>you get</dt><dd>{review.credits} credits</dd>
@@ -93,15 +92,15 @@ export default function TokenPage() {
         </Panel>
       </div>
       <Panel title="what $NEURON pays for" className="mt-6">
-        <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-[11px] tnum" data-testid="utility-table">
+        <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-[12.5px] tnum" data-testid="utility-table">
           <thead><tr className="text-left text-muted"><th className="pr-3 font-normal">action</th><th className="pr-3 font-normal">free tier</th><th className="pr-3 font-normal">beyond it</th><th className="font-normal">settled</th></tr></thead>
           <tbody>
-            <tr className="border-t hair"><td className="py-1.5 pr-3">browse, inspect, run in browser</td><td className="pr-3">unlimited</td><td className="pr-3">—</td><td>never charged</td></tr>
-            <tr className="border-t hair"><td className="py-1.5 pr-3">saved experiment</td><td className="pr-3">{cfg?.freeExperimentsPerDay}/day per wallet</td><td className="pr-3">1 credit</td><td>reserved at queue, consumed on completion, released on failure</td></tr>
-            <tr className="border-t hair"><td className="py-1.5 pr-3">training job</td><td className="pr-3">{cfg?.freeTrainingPerDay}/day, ≤ {cfg?.freeTrainingMaxEpochs} epochs</td><td className="pr-3">⌈epochs × samples × params ÷ 2,000,000⌉ credits</td><td>pro-rata on cancel; unused credits released</td></tr>
-            <tr className="border-t hair"><td className="py-1.5 pr-3">community neuron registration</td><td className="pr-3">—</td><td className="pr-3">{cfg?.registrationCredits} credits</td><td>consumed when the network version is created</td></tr>
-            <tr className="border-t hair"><td className="py-1.5 pr-3">governance proposal / vote</td><td className="pr-3">—</td><td className="pr-3">needs a $NEURON balance; nothing is spent</td><td>weight = balance at vote</td></tr>
-            <tr className="border-t hair text-faint"><td className="py-1.5 pr-3">premium model storage</td><td className="pr-3" colSpan={3}>not built: every saved model and checkpoint is currently stored at no charge</td></tr>
+            <tr className="border-t border-line"><td className="py-1.5 pr-3">browse, inspect, run in browser</td><td className="pr-3">unlimited</td><td className="pr-3">—</td><td>never charged</td></tr>
+            <tr className="border-t border-line"><td className="py-1.5 pr-3">saved experiment</td><td className="pr-3">{cfg?.freeExperimentsPerDay}/day per wallet</td><td className="pr-3">1 credit</td><td>reserved at queue, consumed on completion, released on failure</td></tr>
+            <tr className="border-t border-line"><td className="py-1.5 pr-3">training job</td><td className="pr-3">{cfg?.freeTrainingPerDay}/day, ≤ {cfg?.freeTrainingMaxEpochs} epochs</td><td className="pr-3">⌈epochs × samples × params ÷ 2,000,000⌉ credits</td><td>pro-rata on cancel; unused credits released</td></tr>
+            <tr className="border-t border-line"><td className="py-1.5 pr-3">community neuron registration</td><td className="pr-3">—</td><td className="pr-3">{cfg?.registrationCredits} credits</td><td>consumed when the network version is created</td></tr>
+            <tr className="border-t border-line"><td className="py-1.5 pr-3">governance proposal / vote</td><td className="pr-3">—</td><td className="pr-3">needs a $NEURON balance; nothing is spent</td><td>weight = balance at vote</td></tr>
+            <tr className="border-t border-line text-faint"><td className="py-1.5 pr-3">premium model storage</td><td className="pr-3" colSpan={3}>not built: every saved model and checkpoint is currently stored at no charge</td></tr>
           </tbody>
         </table></div>
       </Panel>
@@ -109,9 +108,9 @@ export default function TokenPage() {
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <Panel title="payment intents">
             {!intents.data?.items.length ? <Empty title="no payments" /> : (
-              <table className="w-full text-[11px] tnum" data-testid="intents">
+              <table className="w-full text-[12.5px] tnum" data-testid="intents">
                 <tbody>{intents.data.items.map((i) => (
-                  <tr key={i.id} className="border-t hair first:border-0"><td className="py-1 pr-3">{i.id.slice(0, 12)}</td><td className="pr-3">{i.credits} cr</td><td className="pr-3">{ui(i.amount, d)}</td>
+                  <tr key={i.id} className="border-t border-line first:border-0"><td className="py-1 pr-3">{i.id.slice(0, 12)}</td><td className="pr-3">{i.credits} cr</td><td className="pr-3">{ui(i.amount, d)}</td>
                     <td className="pr-3">{i.signature ? <a href={explorerTx(i.signature, cfg?.cluster ?? "", cfg?.rpc ?? "")} target="_blank" rel="noreferrer">{short(i.signature, 4)}</a> : "—"}</td>
                     <td><StatusPill status={i.status} />{i.failure_reason && <span className="ml-1 text-bad">{i.failure_reason}</span>}</td></tr>
                 ))}</tbody>
@@ -120,8 +119,8 @@ export default function TokenPage() {
           </Panel>
           <Panel title="credit ledger">
             {!credits.data?.events.length ? <Empty title="no movements" /> : (
-              <ul className="text-[11px] tnum">{credits.data.events.map((e, i) => (
-                <li key={i} className="grid grid-cols-[80px_60px_1fr_auto] gap-2 border-t hair py-1 first:border-0"><span>{e.kind}</span><span className={e.kind === "purchase" || e.kind === "release" ? "text-good" : ""}>{e.amount}</span><span className="truncate text-muted">{e.ref_type} {e.ref_id.slice(0, 10)}</span><span className="text-faint">{ago(e.created_at)}</span></li>
+              <ul className="text-[12.5px] tnum">{credits.data.events.map((e, i) => (
+                <li key={i} className="grid grid-cols-[80px_60px_1fr_auto] gap-2 border-t border-line py-1 first:border-0"><span>{e.kind}</span><span className={e.kind === "purchase" || e.kind === "release" ? "text-good" : ""}>{e.amount}</span><span className="truncate text-muted">{e.ref_type} {e.ref_id.slice(0, 10)}</span><span className="text-faint">{ago(e.created_at)}</span></li>
               ))}</ul>
             )}
           </Panel>

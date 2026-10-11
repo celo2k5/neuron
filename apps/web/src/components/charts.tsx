@@ -8,7 +8,7 @@ export function LossChart({ series, height = 150, baseline }: { series: { name: 
   const W = 520, H = height, pl = 44, pr = 10, pt = 8, pb = 22;
   const all = series.flatMap((s) => s.values).concat(baseline ? [baseline] : []).filter((v) => v > 0 && Number.isFinite(v));
   const n = Math.max(2, ...series.map((s) => s.values.length));
-  if (!all.length) return <div className="flex items-center justify-center border border-dashed hair text-muted" style={{ height }}>no epochs yet</div>;
+  if (!all.length) return <div className="flex items-center justify-center border border-dashed border-line text-muted" style={{ height }}>no epochs yet</div>;
   const lo = Math.log10(Math.min(...all)) - 0.05, hi = Math.log10(Math.max(...all)) + 0.05;
   const x = (i: number) => pl + (i / (n - 1)) * (W - pl - pr);
   const y = (v: number) => pt + (1 - (Math.log10(Math.max(v, 1e-12)) - lo) / Math.max(1e-9, hi - lo)) * (H - pt - pb);
@@ -64,5 +64,5 @@ export function DecisionMap({ model, dataset, size = 220 }: { model: Model | nul
   }, [model, dataset, size, theme]);
   if (!model || !dataset) return null;
   if (model.config.inputDim !== 2) return <p className="text-muted">Decision map needs a 2-input model.</p>;
-  return <canvas ref={ref} style={{ width: size, height: size, maxWidth: "100%" }} className="border hair" aria-label="Decision surface computed from the model over a grid, with training points" role="img" />;
+  return <canvas ref={ref} style={{ width: size, height: size, maxWidth: "100%" }} className="border border-line" aria-label="Decision surface computed from the model over a grid, with training points" role="img" />;
 }

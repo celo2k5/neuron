@@ -68,7 +68,7 @@ export const GraphCanvas = forwardRef<GraphHandle, Props>(function GraphCanvas(
       {toolbar && interactive && (
         <div className="absolute right-2 top-2 z-10 flex gap-1">
           {[["+", () => r.current?.zoom(1.25), "zoom in"], ["−", () => r.current?.zoom(0.8), "zoom out"], ["fit", () => r.current?.fit(), "fit to view"]].map(([t, f, l]) => (
-            <button key={t as string} aria-label={l as string} onClick={f as () => void} className="act-ghost !px-2 !py-0.5 bg-bg/70">{t as string}</button>
+            <button key={t as string} aria-label={l as string} onClick={f as () => void} className="act-ghost">{t as string}</button>
           ))}
         </div>
       )}
@@ -108,7 +108,7 @@ function Tooltip({ model, hit, x, y, acts }: { model: Model; hit: Hit; x: number
     );
   }
   return (
-    <div className="pointer-events-none absolute z-20 w-[230px] border hair bg-bg/95 p-2 text-[10.5px]" style={{ left: Math.min(x + 14, 9999), top: y + 14, transform: x > 600 ? "translateX(-110%)" : undefined }}>
+    <div className="pointer-events-none absolute z-20 w-[230px] border border-line bg-bg/95 p-2 text-[12px]" style={{ left: Math.min(x + 14, 9999), top: y + 14, transform: x > 600 ? "translateX(-110%)" : undefined }}>
       {body}
     </div>
   );

@@ -9,6 +9,7 @@ import { useSession } from "@/lib/client/wallet";
 import { api } from "@/lib/client/api";
 import { seededInput } from "@/lib/client/specimens";
 import { GraphCanvas } from "./GraphCanvas";
+import { Specimen3D } from "./Specimen3D";
 import { NetworkFacts } from "./lab/Inspector";
 import { Empty, ErrorBox, Hash, Panel, Spinner, StatusPill, ago, fmt } from "./ui";
 
@@ -21,6 +22,7 @@ export function ModelDetail({ id }: { id: string }) {
   const v = ver ?? d.data?.model.latest_version ?? null;
   const art = useModelArtifact(id, v);
   const [form, setForm] = useState<VisualForm | null>(null);
+  const [v3, setV3] = useState(true);
   const [cmp, setCmp] = useState<[number, number] | null>(null);
   const [forkSeed, setForkSeed] = useState("");
   const [err, setErr] = useState<unknown>(null);
@@ -44,40 +46,41 @@ export function ModelDetail({ id }: { id: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 pt-8">
+    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="label"><Link href="/networks">networks</Link> / {m.id}</div>
           <h1 className="display mt-2 text-[40px]">{m.name}</h1>
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted">
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-[12.5px] text-muted">
             <span>{m.architecture}</span><span className="tnum">{[m.config.inputDim, ...m.config.hidden, m.config.outputDim].join("·")}</span>
             {m.trained ? <span className="pill text-good">trained versions</span> : <span className="pill text-faint">generated · untrained</span>}
             {m.forked_from && <span>forked from <Link href={`/networks/${m.forked_from}`}>{m.forked_from}</Link></span>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link href={`/lab?model=${m.id}&v=${v}`} className="act-primary no-underline">open v{v} in lab</Link>
-          <a href={`/api/models/${m.id}/versions/${v}`} target="_blank" rel="noreferrer">export v{v} json</a>
+          <Link href={`/lab?model=${m.id}&v=${v}`} className="act-primary no-underline">Open v{v} in lab</Link>
+          <a href={`/api/models/${m.id}/versions/${v}`} target="_blank" rel="noreferrer">Export v{v} JSON</a>
         </div>
       </div>
       <ErrorBox error={err} />
-      <div className="mt-6 grid gap-px border hair bg-line lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="relative min-h-[480px] bg-bg">
-          {art.data ? <GraphCanvas model={art.data} form={shownForm} palette={m.presentation.palette} activations={acts} className="absolute inset-0" /> : <div className="p-6"><Spinner label="verifying artifact" /></div>}
+      <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="panel relative min-h-[500px] overflow-hidden">
+          {art.data && v3 ? <Specimen3D model={art.data} activations={acts} className="absolute inset-0" zoom framing={0.95} /> : art.data ? <GraphCanvas model={art.data} form={shownForm} palette={m.presentation.palette} activations={acts} className="absolute inset-0" /> : <div className="p-6"><Spinner label="verifying artifact" /></div>}
           <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-1">
-            {VISUAL_FORMS.map((f) => <button key={f} className="act-ghost !px-2 !py-0.5 bg-bg/70" aria-pressed={shownForm === f} onClick={() => setForm(f)}>{f.toLowerCase()}</button>)}
+            <button className="act-ghost" aria-pressed={v3} onClick={() => setV3(true)}>3D</button>
+            {VISUAL_FORMS.map((f) => <button key={f} className="act-ghost" aria-pressed={!v3 && shownForm === f} onClick={() => { setV3(false); setForm(f); }}>{f.toLowerCase()}</button>)}
             {isOwner && form && form !== m.presentation.form && <button className="act ml-2" onClick={savePresentation}>save as preferred view</button>}
           </div>
         </div>
-        <div className="bg-bg p-4">{art.data && <NetworkFacts model={art.data} meta={{ row: m, persisted: true, lastExperiment: m.last_experiment_at, verification: m.verified_count ? `${m.verified_count} verified` : null }} />}</div>
+        <div className="panel p-5">{art.data && <NetworkFacts model={art.data} meta={{ row: m, persisted: true, lastExperiment: m.last_experiment_at, verification: m.verified_count ? `${m.verified_count} verified` : null }} />}</div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Panel title="versions" meta="immutable · content-addressed">
-          <table className="w-full text-[11px] tnum">
+          <table className="w-full text-[12.5px] tnum">
             <thead><tr className="text-left text-muted"><th className="font-normal">v</th><th className="font-normal">kind</th><th className="font-normal">artifact</th><th className="font-normal">val loss</th><th className="font-normal">created</th><th /></tr></thead>
             <tbody>{d.data!.versions.map((x) => (
-              <tr key={x.id} className={`border-t hair ${x.version === v ? "text-accent" : ""}`}>
+              <tr key={x.id} className={`border-t border-line ${x.version === v ? "text-accent" : ""}`}>
                 <td>v{x.version}</td><td>{x.trained ? "checkpoint" : "generated"}</td><td><Hash value={x.artifact_hash} n={5} /></td>
                 <td>{x.metrics?.valLoss !== undefined ? fmt(x.metrics.valLoss, 4) : "—"}</td><td>{ago(x.created_at)}</td>
                 <td className="text-right"><button className="act" onClick={() => setVer(x.version)}>view</button></td>
@@ -85,7 +88,7 @@ export function ModelDetail({ id }: { id: string }) {
             ))}</tbody>
           </table>
           {d.data!.versions.length > 1 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[12.5px]">
               <span className="label">compare</span>
               <button className="act" onClick={() => setCmp([1, d.data!.model.latest_version])}>v1 ↔ v{d.data!.model.latest_version}</button>
             </div>
@@ -96,18 +99,18 @@ export function ModelDetail({ id }: { id: string }) {
           <p className="text-muted">Forking copies this configuration with a new seed. The fork is a new, independent deterministic model; trained weights are not copied.</p>
           <div className="mt-2 flex gap-2"><input className="field" placeholder={`${m.seed}-fork`} value={forkSeed} onChange={(e) => setForkSeed(e.target.value)} aria-label="Fork seed" />
             <button className="act-ghost" disabled={!session.data?.session} onClick={fork}>fork</button></div>
-          {!session.data?.session && <p className="mt-1 text-[10.5px] text-faint">Sign in with a wallet to fork.</p>}
+          {!session.data?.session && <p className="mt-1 text-[12px] text-faint">Sign in with a wallet to fork.</p>}
         </Panel>
         <Panel title="training jobs">
           {d.data!.training.length === 0 ? <Empty title="never trained">Open in the lab and use the training tab.</Empty> : (
-            <ul className="divide-y divide-line text-[11px]">{d.data!.training.map((t) => (
+            <ul className="divide-y divide-line text-[12.5px]">{d.data!.training.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-2 py-1.5"><span>{t.dataset} · {t.options.optimizer} · {t.options.epochs} ep</span><span className="tnum text-muted">{t.epoch} done</span><StatusPill status={t.status} /></li>
             ))}</ul>
           )}
         </Panel>
         <Panel title="latest experiments">
           {d.data!.experiments.length === 0 ? <Empty title="no saved experiments" /> : (
-            <ul className="divide-y divide-line text-[11px]">{d.data!.experiments.map((e) => (
+            <ul className="divide-y divide-line text-[12.5px]">{d.data!.experiments.map((e) => (
               <li key={e.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-1.5"><Link href={`/experiments/${e.id}`} className="tnum">{e.id.slice(0, 8)} · v{e.version} · {e.input_source}</Link><Hash value={e.result_hash} n={4} /><StatusPill status={e.commitment_status ?? e.status} /></li>
             ))}</ul>
           )}
@@ -125,7 +128,7 @@ function VersionCompare({ id, a, b }: { id: string; a: number; b: number }) {
   const x = seededInput("version-compare", A.data.config.inputDim);
   const oa = forward(A.data, x).output, ob = forward(B.data, x).output;
   return (
-    <dl className="kv mt-3 border-t hair pt-2 text-[11px]">
+    <dl className="kv mt-3 border-t border-line pt-2 text-[12.5px]">
       <dt>‖ΔW‖₂</dt><dd className="tnum">{fmt(Math.sqrt(d2), 5)}</dd>
       <dt>changed</dt><dd className="tnum">{changed} / {wa.length} weights</dd>
       <dt>v{a} out</dt><dd className="tnum">[{oa.map((v) => fmt(v, 4)).join(", ")}]</dd>

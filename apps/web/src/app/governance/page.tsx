@@ -14,16 +14,15 @@ export default function GovernancePage() {
   const { data: cfg } = useConfig();
   const r = q.data?.rules;
   return (
-    <div className="mx-auto max-w-[1600px] px-4 pt-8">
-      <div className="label">§ governance</div>
-      <Scramble as="h1" text="RULES BEFORE VOTES" className="display mt-2 block text-[40px]" />
+    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
+      <Scramble as="h1" text="Rules before votes." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
       <p className="mt-2 max-w-[78ch] text-muted">Token holders can make advisory proposals or bounded policy changes to the community network. No vote can move treasury funds, and no off-chain vote executes anything outside the whitelisted network parameters.</p>
       {!cfg?.mint && <div className="mt-4 border border-warn/60 p-3 text-warn">Governance needs a configured $NEURON mint to read voting weight. It is disabled here.</div>}
       <div className="mt-6 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">
           <Panel title="explicit rules">
             {r && (
-              <dl className="kv text-[11px]" data-testid="gov-rules">
+              <dl className="kv text-[12.5px]" data-testid="gov-rules">
                 <dt>weight</dt><dd>{r.snapshotRule}</dd>
                 <dt>threshold</dt><dd className="tnum">{r.proposalThresholdBase} base units to propose</dd>
                 <dt>quorum</dt><dd className="tnum">{r.quorumBase} base units total</dd>
@@ -35,7 +34,7 @@ export default function GovernancePage() {
                 <dt>never</dt><dd>treasury transfers, other users&apos; parameters</dd>
               </dl>
             )}
-            <p className="mt-2 text-[10.5px] text-faint">Known limitation: weight is the balance at vote time, not a historical snapshot. A balance-snapshot indexer would close this gap.</p>
+            <p className="mt-2 text-[12px] text-faint">Known limitation: weight is the balance at vote time, not a historical snapshot. A balance-snapshot indexer would close this gap.</p>
           </Panel>
           <NewProposal />
         </div>
@@ -61,12 +60,12 @@ function ProposalRow({ p }: { p: Proposal }) {
     catch (e) { setErr(e); }
   };
   return (
-    <article className="border-t hair py-3 first:border-0 first:pt-0">
+    <article className="border-t border-line py-3 first:border-0 first:pt-0">
       <div className="flex flex-wrap items-center gap-2"><StatusPill status={p.status} /><span className="pill text-muted">{p.kind}</span><h3 className="text-[13px]">{p.title}</h3></div>
       <p className="mt-1 whitespace-pre-wrap text-muted">{p.body}</p>
-      {p.change && <pre className="mt-1 overflow-x-auto text-[10.5px] text-accent-2">{JSON.stringify(p.change)}</pre>}
+      {p.change && <pre className="mt-1 overflow-x-auto text-[12px] text-accent-2">{JSON.stringify(p.change)}</pre>}
       <div className="mt-2 h-1.5 w-full bg-line"><div className="h-1.5 bg-good" style={{ width: `${pct}%` }} /></div>
-      <div className="mt-1 flex flex-wrap gap-4 text-[10.5px] tnum text-muted"><span>for {t.for}</span><span>against {t.against}</span><span>abstain {t.abstain}</span><span>{t.voters} voters</span><span>quorum {t.total}/{p.quorum}</span><span>by {short(p.author_wallet)}</span><span>ends {ago(p.ends_at).replace(" ago", "")}{Date.parse(p.ends_at) > Date.now() ? " from now" : " ago"}</span></div>
+      <div className="mt-1 flex flex-wrap gap-4 text-[12px] tnum text-muted"><span>for {t.for}</span><span>against {t.against}</span><span>abstain {t.abstain}</span><span>{t.voters} voters</span><span>quorum {t.total}/{p.quorum}</span><span>by {short(p.author_wallet)}</span><span>ends {ago(p.ends_at).replace(" ago", "")}{Date.parse(p.ends_at) > Date.now() ? " from now" : " ago"}</span></div>
       {p.status === "active" && session.data?.session && <div className="mt-2 flex gap-3">{(["for", "against", "abstain"] as const).map((c) => <button key={c} className="act" onClick={() => vote(c)}>sign vote: {c}</button>)}</div>}
       <ErrorBox error={err} />
     </article>
@@ -96,7 +95,7 @@ function NewProposal() {
   return (
     <Panel title="new proposal">
       <div className="flex flex-col gap-2">
-        <div className="flex gap-1">{(["advisory", "policy"] as const).map((k) => <button key={k} className="act-ghost !px-2 !py-0.5" aria-pressed={kind === k} onClick={() => setKind(k)}>{k}</button>)}</div>
+        <div className="flex gap-1">{(["advisory", "policy"] as const).map((k) => <button key={k} className="act-ghost" aria-pressed={kind === k} onClick={() => setKind(k)}>{k}</button>)}</div>
         <input className="field" placeholder="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} aria-label="Title" />
         <textarea className="field min-h-[80px]" placeholder="what and why" value={body} onChange={(e) => setBody(e.target.value)} maxLength={4000} aria-label="Body" />
         {kind === "policy" && (

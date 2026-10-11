@@ -34,7 +34,8 @@
     "react-dom": "19.3.0",
     "tweetnacl": "1.0.3",
     "zod": "3.25.76",
-    "zod-to-json-schema": "3.25.2"
+    "zod-to-json-schema": "3.25.2",
+    "three": "0.170.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",
@@ -50,6 +51,7 @@
     "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vitest": "3.2.7",
-    "embedded-postgres": "17.6.0-beta.15"
+    "embedded-postgres": "17.6.0-beta.15",
+    "@types/three": "0.170.0"
   }
 }

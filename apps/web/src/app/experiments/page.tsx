@@ -21,23 +21,22 @@ export default function ExperimentsPage() {
   });
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   return (
-    <div className="mx-auto max-w-[1600px] px-4 pt-8">
-      <div className="label">§ experiments</div>
-      <Scramble as="h1" text="EXPERIMENT RECORD" className="display mt-2 block text-[40px]" />
+    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
+      <Scramble as="h1" text="Experiment record" className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
       <p className="mt-2 max-w-[70ch] text-muted">Every saved run pins one immutable model version. Statuses come from the job queue: queued, running, completed or failed.</p>
-      <div className="mt-6 flex flex-wrap items-end gap-3 border-y hair py-2">
-        <label className="flex flex-col gap-1"><span className="label !text-[9px]">status</span>
+      <div className="mt-6 flex flex-wrap items-end gap-3 border-y border-line py-2">
+        <label className="flex flex-col gap-1"><span className="label !text-[11px]">status</span>
           <select className="field" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">all</option><option>queued</option><option>running</option><option>completed</option><option>failed</option></select></label>
-        <label className="flex items-center gap-2 pb-1.5 text-[11px]"><input type="checkbox" disabled={!session.data?.session} checked={mine} onChange={(e) => setMine(e.target.checked)} /> mine only</label>
+        <label className="flex items-center gap-2 pb-1.5 text-[12.5px]"><input type="checkbox" disabled={!session.data?.session} checked={mine} onChange={(e) => setMine(e.target.checked)} /> mine only</label>
       </div>
       {list.error && <ErrorBox error={list.error} />}
       <div className="overflow-x-auto">
-        <table className="mt-2 w-full min-w-[820px] text-[11px] tnum" data-testid="experiments-table">
+        <table className="mt-2 w-full min-w-[820px] text-[12.5px] tnum" data-testid="experiments-table">
           <thead><tr className="text-left text-muted">{["experiment", "model", "input", "output", "result hash", "elapsed", "owner", "when", "status"].map((h) => <th key={h} className="py-1 pr-3 font-normal">{h}</th>)}</tr></thead>
           <tbody>
             {list.isLoading && Array.from({ length: 6 }, (_, i) => <tr key={i}><td colSpan={9} className="py-1"><Skeleton h={14} /></td></tr>)}
             {items.map((e) => (
-              <tr key={e.id} className="border-t hair hover:bg-surface/40">
+              <tr key={e.id} className="border-t border-line hover:bg-surface/40">
                 <td className="py-1.5 pr-3"><Link href={`/experiments/${e.id}`}>{e.id.slice(0, 8)}</Link>{e.reproduced_from && <span className="ml-1 text-faint">repro</span>}</td>
                 <td className="pr-3"><Link href={`/networks/${e.model_id}`}>{e.model_id}</Link> v{e.version}</td>
                 <td className="pr-3 text-muted">{e.input_source} · {e.input.length}d</td>

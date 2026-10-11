@@ -60,7 +60,7 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
   return (
     <div className="flex flex-col gap-2" data-testid="experiment-panel">
       <div className="flex gap-1" role="radiogroup" aria-label="Input source">
-        {(["seeded", "manual", "dataset"] as Source[]).map((s) => <button key={s} className="act-ghost !px-2 !py-0.5" aria-pressed={source === s} onClick={() => setSource(s)}>{s}</button>)}
+        {(["seeded", "manual", "dataset"] as Source[]).map((s) => <button key={s} className="act-ghost" aria-pressed={source === s} onClick={() => setSource(s)}>{s}</button>)}
       </div>
       {source === "manual" && <textarea aria-label={`Input vector, ${dim} numbers`} className="field tnum min-h-[52px]" value={manual} onChange={(e) => setManual(e.target.value)} data-testid="manual-input" />}
       {source === "seeded" && <input aria-label="Input seed" className="field tnum" value={seed} onChange={(e) => setSeed(e.target.value || "0")} />}
@@ -73,8 +73,8 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
         </div>
       )}
       {parsed.v && <VectorBars values={parsed.v} height={20} color="var(--accent-2)" />}
-      {parsed.error && <p role="alert" className="text-bad text-[11px]">{parsed.error}</p>}
-      <label className="flex items-center gap-2 text-[11px] text-muted">
+      {parsed.error && <p role="alert" className="text-bad text-[12.5px]">{parsed.error}</p>}
+      <label className="flex items-center gap-2 text-[12.5px] text-muted">
         <input type="checkbox" checked={save && canSave} disabled={!canSave} onChange={(e) => setSave(e.target.checked)} data-testid="save-experiment" />
         save to the experiment record {!persistedModelId ? "(save the model first)" : session.data?.session ? "" : "(anonymous; limited)"}
       </label>
@@ -88,7 +88,7 @@ export function ExperimentPanel({ model, persistedModelId, onRun }: { model: Mod
 function SavedRun({ id }: { id: string }) {
   const { data: e } = useExperiment(id);
   return (
-    <div className="border hair p-2 text-[11px]" data-testid="saved-run">
+    <div className="border border-line p-2 text-[12.5px]" data-testid="saved-run">
       <div className="flex items-center justify-between"><span className="label">server run</span>{e && <StatusPill status={e.status} />}</div>
       {e?.status === "completed" && <dl className="kv mt-1"><dt>result</dt><dd><Hash value={e.result_hash} /></dd><dt>elapsed</dt><dd>{fmt(e.elapsed_ms, 3)} ms</dd></dl>}
       {e?.error && <p className="text-bad">{e.error}</p>}
@@ -102,12 +102,12 @@ export function ResultView({ r }: { r: ExperimentRecord }) {
   return (
     <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]" data-testid="result-view">
       <div className="flex flex-col gap-2">
-        <div><div className="label mb-1">input · {r.input.length}</div><div className="tnum break-all text-[11px]">[{r.input.map((v) => fmt(v, 4)).join(", ")}]</div></div>
+        <div><div className="label mb-1">input · {r.input.length}</div><div className="tnum break-all text-[12.5px]">[{r.input.map((v) => fmt(v, 4)).join(", ")}]</div></div>
         <div>
           <div className="label mb-1">output · {r.output.length}</div>
-          <ul className="tnum text-[11px]" data-testid="output-values">{r.output.map((v, i) => <li key={i} className={`flex justify-between ${i === argmax && r.output.length > 1 ? "text-accent" : ""}`}><span>y{i}</span><span>{v}</span></li>)}</ul>
+          <ul className="tnum text-[12.5px]" data-testid="output-values">{r.output.map((v, i) => <li key={i} className={`flex justify-between ${i === argmax && r.output.length > 1 ? "text-accent" : ""}`}><span>y{i}</span><span>{v}</span></li>)}</ul>
         </div>
-        <dl className="kv text-[11px]">
+        <dl className="kv text-[12.5px]">
           <dt>duration</dt><dd>{fmt(r.elapsedMs, 3)} ms (this browser)</dd>
           <dt>model</dt><dd>{r.modelId} v{r.modelVersion}</dd>
           <dt>engine</dt><dd>{r.engine}</dd>
@@ -121,7 +121,7 @@ export function ResultView({ r }: { r: ExperimentRecord }) {
         <div className="label mb-1">intermediate activations</div>
         <div className="flex flex-col gap-1.5">
           {r.activations.map((a, l) => (
-            <div key={l} className="grid grid-cols-[28px_minmax(0,1fr)_92px] items-center gap-2 text-[10px]">
+            <div key={l} className="grid grid-cols-[28px_minmax(0,1fr)_92px] items-center gap-2 text-[11.5px]">
               <span className="text-faint tnum">L{l}</span>
               <VectorBars values={a} height={16} color={l === 0 ? "var(--accent-2)" : "var(--accent)"} />
               <span className="tnum text-muted">μ {fmt(a.reduce((s, x) => s + x, 0) / a.length, 3)}</span>

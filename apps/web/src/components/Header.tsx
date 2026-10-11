@@ -10,21 +10,21 @@ import { WalletButton } from "./WalletButton";
 import { Glyph } from "./Glyph";
 
 export const NAV = [
-  { href: "/lab", label: "LAB" },
-  { href: "/networks", label: "NETWORKS" },
-  { href: "/generator", label: "GENERATOR" },
-  { href: "/experiments", label: "EXPERIMENTS" },
-  { href: "/community", label: "COMMUNITY" },
-  { href: "/ledger", label: "LEDGER" },
-  { href: "/token", label: "TOKEN" },
-  { href: "/governance", label: "GOVERNANCE" },
-  { href: "/about", label: "ABOUT" },
+  { href: "/lab", label: "Lab" },
+  { href: "/networks", label: "Networks" },
+  { href: "/generator", label: "Generator" },
+  { href: "/experiments", label: "Experiments" },
+  { href: "/community", label: "Community" },
+  { href: "/ledger", label: "Ledger" },
+  { href: "/token", label: "Token" },
+  { href: "/governance", label: "Governance" },
+  { href: "/about", label: "About" },
 ];
 
 const CLUSTER_STYLE: Record<string, { label: string; cls: string; note: string }> = {
-  localnet: { label: "LOCALNET", cls: "text-warn", note: "local validator · test tokens have no value" },
-  devnet: { label: "DEVNET", cls: "text-accent-2", note: "devnet · test tokens have no value" },
-  "mainnet-beta": { label: "MAINNET", cls: "text-good", note: "mainnet · real funds" },
+  localnet: { label: "Localnet", cls: "text-warn", note: "Local validator. Test tokens have no value." },
+  devnet: { label: "Devnet", cls: "text-accent-2", note: "Devnet. Test tokens have no value." },
+  "mainnet-beta": { label: "Mainnet", cls: "text-good", note: "Mainnet. Real funds." },
 };
 
 export function ClusterPill() {
@@ -38,12 +38,12 @@ function NetworkStatus() {
   const { data } = useQuery({ queryKey: ["ready"], queryFn: () => api<{ ok: boolean; rpc: { ok: boolean; slot?: number; latencyMs: number } }>("/api/ready"), refetchInterval: 15_000 });
   const rpcOk = data?.rpc.ok;
   return (
-    <div className="hidden items-center gap-3 whitespace-nowrap 2xl:flex" aria-label="Network status">
-      <span className={`flex items-center gap-1.5 tnum ${rpcOk ? "text-fg" : "text-bad"}`} title={rpcOk ? `RPC latency ${data?.rpc.latencyMs} ms` : "RPC unreachable"}>
-        <span className={`dot ${rpcOk ? "text-good dot-live" : "text-bad"}`} />
-        {rpcOk ? `slot ${data?.rpc.slot?.toLocaleString()}` : data ? "rpc down" : "rpc …"}
+    <div className="hidden items-center gap-2.5 whitespace-nowrap text-[12px] md:flex" aria-label="Network status">
+      <ClusterPill />
+      <span className={`hidden items-center gap-1.5 2xl:flex ${rpcOk ? "text-muted" : "text-bad"}`} title={rpcOk ? `RPC latency ${data?.rpc.latencyMs} ms · event stream ${stream}` : "RPC unreachable"}>
+        <span className={`dot ${rpcOk && stream === "live" ? "text-good dot-live" : rpcOk ? "text-warn" : "text-bad"}`} />
+        <span className="tnum">{rpcOk ? `slot ${data?.rpc.slot?.toLocaleString()}` : data ? "RPC offline" : "…"}</span>
       </span>
-      <span className={`label ${stream === "live" ? "text-good" : "text-muted"}`} title="Server event stream">{stream === "live" ? "live" : stream}</span>
     </div>
   );
 }
@@ -51,57 +51,45 @@ function NetworkStatus() {
 export function Header() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => setOpen(false), [path]);
   useEffect(() => {
-    const on = () => { const h = document.documentElement; setProgress(h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)); };
+    const on = () => setScrolled(window.scrollY > 12);
     on();
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
-  }, [path]);
-  const { data: cfg } = useConfig();
+  }, []);
+  const home = path === "/";
   return (
-    <header className="sticky z-40 border-b hair bg-bg/90 backdrop-blur-[2px]" style={{ top: "env(safe-area-inset-top, 0px)" }}>
-      {cfg && cfg.cluster !== "mainnet-beta" && (
-        <div className="truncate border-b hair px-4 py-0.5 text-center label !text-[9px]">
-          <span className={CLUSTER_STYLE[cfg.cluster]?.cls}>{CLUSTER_STYLE[cfg.cluster]?.label}</span> · {CLUSTER_STYLE[cfg.cluster]?.note}
-        </div>
-      )}
-      <div className="mx-auto flex h-12 max-w-[1600px] items-center gap-3 px-4 sm:gap-6">
-        <Link href="/" className="group flex items-center gap-2.5 no-underline" aria-label="NEURON home">
-          <Glyph />
-          <span className="leading-none">
-            <span className="display block text-[22px] tracking-[0.06em]">NEURON</span>
-            <span className="hidden whitespace-nowrap text-[9px] text-muted sm:block">collective neural computation on solana</span>
-          </span>
+    <header className={`${home ? "fixed inset-x-0" : "sticky"} z-40 transition-[background-color,border-color] duration-500 ${scrolled || !home ? "border-b border-line bg-bg/70 backdrop-blur-xl" : "border-b border-transparent"}`} style={{ top: "env(safe-area-inset-top, 0px)" }}>
+      <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-8 px-5 sm:px-8">
+        <Link href="/" className="flex items-center gap-2.5 no-underline" aria-label="NEURON home">
+          <Glyph size={24} />
+          <span className="font-serif-d text-[21px] font-normal tracking-[-0.01em]">Neuron</span>
         </Link>
-        <nav aria-label="Primary" className="hidden flex-1 items-center gap-3.5 xl:flex">
-          {NAV.map((n, i) => {
+        <nav aria-label="Primary" className="hidden flex-1 items-center gap-1 xl:flex">
+          {NAV.map((n) => {
             const on = path === n.href || path.startsWith(n.href + "/");
             return (
               <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined}
-                className={`relative py-1 text-[10.5px] tracking-[0.14em] no-underline transition-colors ${on ? "text-fg" : "text-muted hover:text-fg"}`}>
-                <span className="mr-1 text-[9px] text-faint tnum">{String(i + 1).padStart(2, "0")}</span>{n.label}
-                <span className={`absolute -bottom-[13px] left-0 h-px bg-accent transition-all duration-500 ${on ? "w-full" : "w-0"}`} />
+                className={`rounded-full px-3 py-1.5 text-[13.5px] no-underline transition-colors ${on ? "bg-fg/[0.07] text-fg" : "text-muted hover:text-fg"}`}>
+                {n.label}
               </Link>
             );
           })}
         </nav>
-        <div className="ml-auto flex min-w-0 items-center gap-3 sm:gap-4">
+        <div className="ml-auto flex min-w-0 items-center gap-4">
           <NetworkStatus />
           <WalletButton />
-          <button className="act xl:hidden" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>{open ? "close" : "menu"}</button>
+          <button className="act xl:hidden" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Menu"}</button>
         </div>
       </div>
-      <div className="h-px bg-accent transition-[width] duration-150" style={{ width: `${progress * 100}%` }} aria-hidden />
       {open && (
-        <nav id="mobile-nav" aria-label="Mobile" className="border-t hair bg-bg px-4 py-3 xl:hidden">
-          <ul className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3">
-            {NAV.map((n, i) => (
-              <li key={n.href}><Link href={n.href} className="no-underline"><span className="mr-1 text-faint">{String(i + 1).padStart(2, "0")}</span>{n.label}</Link></li>
-            ))}
+        <nav id="mobile-nav" aria-label="Mobile" className="border-t border-line bg-bg/95 px-5 py-4 backdrop-blur-xl xl:hidden">
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
+            {NAV.map((n) => <li key={n.href}><Link href={n.href} className="text-[15px] no-underline">{n.label}</Link></li>)}
           </ul>
-          <div className="mt-3 lg:hidden"><ClusterPill /></div>
+          <div className="mt-4"><ClusterPill /></div>
         </nav>
       )}
     </header>

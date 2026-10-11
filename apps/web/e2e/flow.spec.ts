@@ -19,7 +19,7 @@ test.beforeAll(async ({ browser }) => {
 
 test("1. app loads with the live hero computation", async () => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /INTELLIGENCE/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /intelligence is a network/i })).toBeVisible();
   await expect(page.locator("main canvas").first()).toBeVisible();
   await expect(page.getByText(/^#000[1-9]/)).toBeVisible();
   expect(errors).toEqual([]);
@@ -54,7 +54,7 @@ test("7. connect the dev wallet and sign in with a signed challenge", async () =
 
 test("4–5. inspect a neuron and an edge; inference output equals the server's", async () => {
   await page.goto("/lab");
-  await page.getByTestId("seed-input").fill("acceptance-lab");
+  await page.getByTestId("seed-input").fill(`acceptance-lab-${Date.now()}`); // fresh model each run, so training starts from v1
   await page.getByTestId("save-model").click();
   await page.waitForURL(/\/lab\?model=M-/);
   state.modelId = new URL(page.url()).searchParams.get("model")!;
@@ -73,7 +73,7 @@ test("4–5. inspect a neuron and an edge; inference output equals the server's"
   const local = await page.getByTestId("output-values").locator("li span:last-child").allTextContents();
   expect(local.length).toBeGreaterThan(0);
   state.localOutput = local;
-  await page.getByTestId("saved-run").getByText("completed").waitFor();
+  await page.getByTestId("saved-run").getByText(/completed/i).waitFor();
   await page.getByTestId("saved-run").getByRole("link", { name: /open experiment/ }).click();
   await page.waitForURL(/\/experiments\//);
   state.experimentId = page.url().split("/").pop()!;
@@ -100,7 +100,7 @@ test("8. buy credits with local-validator test tokens; credits reconcile once", 
   await page.getByTestId("create-intent").click();
   await expect(page.getByTestId("payment-review")).toContainText("10 credits");
   await page.getByTestId("approve-payment").click();
-  await expect(page.getByTestId("intents")).toContainText("confirmed", { timeout: 60_000 });
+  await expect(page.getByTestId("intents")).toContainText(/confirmed/i, { timeout: 60_000 });
   await expect(page.getByTestId("token-balance")).toContainText("990");
 });
 
@@ -121,18 +121,18 @@ test("6. train on the server: weights change, metrics and checkpoints recorded",
   await page.getByTestId("training-panel").getByLabel("epochs").fill("60");
   await page.getByTestId("server-train").click();
   await page.getByTestId("confirm-train").click();
-  await expect(page.getByTestId("training-panel").getByText("completed")).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId("training-panel").getByText(/^completed$/i)).toBeVisible({ timeout: 90_000 });
   await expect(page.getByTestId("checkpoints")).toContainText(/v\d+/); // version number depends on prior runs of this deterministic model
   const delta = await page.getByTestId("training-metrics").locator("dd").last().textContent();
   expect(Number(delta!.replace("%", ""))).toBeLessThan(0); // validation loss went down vs. before training
   await page.getByTestId("checkpoints").getByRole("button", { name: "load" }).last().click();
-  await expect(page.getByTestId("network-facts")).toContainText("trained checkpoint");
+  await expect(page.getByTestId("network-facts")).toContainText(/trained checkpoint/i);
 });
 
 test("9. commit the experiment on-chain and verify it", async () => {
   await page.goto(`/experiments/${state.experimentId}`);
   await page.getByTestId("commit").click();
-  await expect(page.getByTestId("verification")).toContainText("verified", { timeout: 60_000 });
+  await expect(page.getByTestId("verification")).toContainText(/verified/i, { timeout: 60_000 });
   await expect(page.getByTestId("verification")).toContainText("stored hashes recompute");
   await page.goto("/ledger");
   await expect(page.getByTestId("ledger-table")).toContainText(state.experimentId!.slice(0, 8));
@@ -140,7 +140,7 @@ test("9. commit the experiment on-chain and verify it", async () => {
 
 test("10. state survives a reload (persisted models, versions, history)", async () => {
   await page.goto(`/networks/${state.modelId}`);
-  await expect(page.getByText("checkpoint").first()).toBeVisible();
+  await expect(page.getByText(/^checkpoint$/i).first()).toBeVisible();
   await page.goto("/experiments");
   await expect(page.getByTestId("experiments-table")).toContainText(state.experimentId!.slice(0, 8));
   expect(errors).toEqual([]);

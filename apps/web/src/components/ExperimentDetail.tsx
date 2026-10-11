@@ -56,25 +56,25 @@ export function ExperimentDetail({ id }: { id: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 pt-8">
+    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
       <div className="label"><Link href="/experiments">experiments</Link> / {id.slice(0, 8)}</div>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
         <h1 className="display text-[40px] tnum">EXP·{id.slice(0, 8).toUpperCase()}</h1>
         <div className="flex items-center gap-3"><StatusPill status={e.status} />{e.status === "completed" && <button className="act-ghost" disabled={!!busy} onClick={reproduce} data-testid="reproduce">{busy === "repro" ? "queuing…" : "reproduce"}</button>}</div>
       </div>
       <ErrorBox error={err} />
-      <ol className="mt-4 flex flex-wrap gap-0 border hair text-[10.5px]" aria-label="Pipeline">
+      <ol className="mt-4 flex flex-wrap gap-0 border border-line text-[12px]" aria-label="Pipeline">
         {["select version", "validate input", "execute", "record activations", "compute output", "persist", "render"].map((s, i) => {
           const done = e.status === "completed" || (e.status === "running" && i < 2) || (e.status === "failed" && i < 2);
-          return <li key={s} className={`flex-1 border-r hair px-2 py-1.5 last:border-r-0 ${done ? "text-fg" : "text-faint"} ${e.status === "failed" && i === 2 ? "text-bad" : ""}`}><span className="tnum text-faint">{i + 1}</span> {s}</li>;
+          return <li key={s} className={`flex-1 border-r border-line px-2 py-1.5 last:border-r-0 ${done ? "text-fg" : "text-faint"} ${e.status === "failed" && i === 2 ? "text-bad" : ""}`}><span className="tnum text-faint">{i + 1}</span> {s}</li>;
         })}
       </ol>
-      <div className="mt-4 grid gap-px border hair bg-line lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="relative min-h-[420px] bg-bg">
+      <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="panel relative min-h-[440px] overflow-hidden">
           {art.data ? <GraphCanvas model={art.data} form={(model.data?.model.presentation.form as VisualForm) ?? "MINIMAL"} activations={acts} className="absolute inset-0" /> : <div className="p-6"><Spinner label="loading pinned artifact" /></div>}
-          {!acts && e.status === "completed" && <p className="absolute bottom-2 left-3 text-[10px] text-faint">Layers wider than 64 store summaries only; the animation is disabled for this run.</p>}
+          {!acts && e.status === "completed" && <p className="absolute bottom-2 left-3 text-[11.5px] text-faint">Layers wider than 64 store summaries only; the animation is disabled for this run.</p>}
         </div>
-        <div className="flex flex-col gap-4 bg-bg p-4 text-[11px]">
+        <div className="panel flex flex-col gap-4 p-5 text-[13px]">
           <dl className="kv" data-testid="experiment-provenance">
             <dt>model</dt><dd><Link href={`/networks/${e.model_id}`}>{e.model_id}</Link> v{e.version}</dd>
             <dt>artifact</dt><dd><Hash value={e.artifact_hash} /></dd>
@@ -108,9 +108,9 @@ export function ExperimentDetail({ id }: { id: string }) {
             <ul className="tnum mt-1" data-testid="server-output">{e.output.map((v, i) => <li key={i} className="flex justify-between"><span>y{i}</span><span>{v}</span></li>)}</ul>
           </Panel>
           <Panel title="activation summary per layer">
-            <table className="w-full text-[11px] tnum"><thead><tr className="text-left text-muted"><th className="font-normal">layer</th><th className="font-normal">min</th><th className="font-normal">mean</th><th className="font-normal">max</th><th className="w-[40%] font-normal" /></tr></thead>
+            <table className="w-full text-[12.5px] tnum"><thead><tr className="text-left text-muted"><th className="font-normal">layer</th><th className="font-normal">min</th><th className="font-normal">mean</th><th className="font-normal">max</th><th className="w-[40%] font-normal" /></tr></thead>
               <tbody>{e.activation_summary?.map((l) => (
-                <tr key={l.layer} className="border-t hair"><td>L{l.layer}</td><td>{fmt(l.min, 4)}</td><td>{fmt(l.mean, 4)}</td><td>{fmt(l.max, 4)}</td><td>{l.values && <VectorBars values={l.values} height={14} />}</td></tr>
+                <tr key={l.layer} className="border-t border-line"><td>L{l.layer}</td><td>{fmt(l.min, 4)}</td><td>{fmt(l.mean, 4)}</td><td>{fmt(l.max, 4)}</td><td>{l.values && <VectorBars values={l.values} height={14} />}</td></tr>
               ))}</tbody></table>
           </Panel>
           <Panel title="on-chain commitment" meta={cfg?.programId ? `program ${short(cfg.programId, 5)}` : "not configured"} className="lg:col-span-2">
@@ -125,7 +125,7 @@ export function ExperimentDetail({ id }: { id: string }) {
                   )}
                   <button className="act mt-3 block" onClick={() => verify.refetch()}>re-verify against chain</button>
                 </div>
-                <dl className="kv text-[11px]">
+                <dl className="kv text-[12.5px]">
                   <dt>cluster</dt><dd>{verify.data.cluster ?? cfg?.cluster}</dd>
                   <dt>pda</dt><dd className="break-all">{verify.data.pda ?? "—"}</dd>
                   <dt>signature</dt><dd className="break-all">{verify.data.signature ? <a href={explorerTx(verify.data.signature, verify.data.cluster ?? "", cfg?.rpc ?? "")} target="_blank" rel="noreferrer">{short(verify.data.signature, 10)}</a> : "—"}</dd>
