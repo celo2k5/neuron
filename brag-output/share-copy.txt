@@ -1,1 +1,0 @@
-NEURON: a neural-network lab in your browser. Every network grows deterministically from its seed and runs live, you can watch it in six forms, and each experiment's hashes are committed to Solana (localnet for now). Intelligence is a network.
