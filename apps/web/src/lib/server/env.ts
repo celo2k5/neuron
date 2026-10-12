@@ -3,6 +3,11 @@ import { z } from "zod";
 const schema = z.object({
   DATABASE_URL: z.string().url(),
   ARTIFACT_DIR: z.string().default(".artifacts"),
+  /** fs = files under ARTIFACT_DIR; db = bytes in Postgres (hosts without a persistent disk) */
+  ARTIFACT_STORE: z.enum(["fs", "db"]).default("fs"),
+  /** optional Postgres schema, to share one database with other apps without touching their tables */
+  DB_SCHEMA: z.string().regex(/^[a-z_][a-z0-9_]*$/).optional(),
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
   APP_DOMAIN: z.string().default("localhost:3000"),
   APP_URL: z.string().url().default("http://localhost:3000"),
   SOLANA_CLUSTER: z.enum(["localnet", "devnet", "mainnet-beta"]).default("localnet"),

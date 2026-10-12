@@ -7,7 +7,8 @@ pg.types.setTypeParser(1700, (v) => v); // numeric → string (exact token amoun
 const g = globalThis as unknown as { __neuronPool?: pg.Pool };
 export function pool(): pg.Pool {
   if (!g.__neuronPool) {
-    g.__neuronPool = new pg.Pool({ connectionString: env().DATABASE_URL, max: 10, statement_timeout: 15_000 });
+    const e = env();
+    g.__neuronPool = new pg.Pool({ connectionString: e.DATABASE_URL, max: e.DB_POOL_MAX, statement_timeout: 15_000, ...(e.DB_SCHEMA ? { options: `-c search_path=${e.DB_SCHEMA}` } : {}) });
   }
   return g.__neuronPool;
 }

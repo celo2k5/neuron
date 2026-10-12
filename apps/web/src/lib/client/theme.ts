@@ -10,7 +10,8 @@ export const THEMES = [
   { id: "abyss", name: "ABYSS", note: "navy / teal" },
 ] as const;
 export type ThemeId = (typeof THEMES)[number]["id"];
-const KEY = "neuron.theme";
+// v2: everyone starts on Obsidian again (the old key held per-browser picks from testing)
+const KEY = "neuron.theme.v2";
 /** page background per theme, mirrored into <meta name="theme-color"> so browser chrome matches */
 const BG: Record<ThemeId, string> = { obsidian: "#080B12", bio: "#06110D", plasma: "#0E0616", solar: "#F5F1E8", mono: "#000000", abyss: "#040A19" };
 function syncThemeColor(t: ThemeId) {

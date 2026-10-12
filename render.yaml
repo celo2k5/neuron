@@ -1,0 +1,22 @@
+# Render blueprint (reference). Free web service running app + worker in one instance.
+services:
+  - type: web
+    name: neuron
+    runtime: node
+    plan: free
+    region: virginia
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: bash apps/web/scripts/start-all.sh
+    healthCheckPath: /api/health
+    envVars:
+      - { key: NODE_VERSION, value: "22" }
+      - { key: DATABASE_URL, sync: false }          # internal URL of the Postgres instance
+      - { key: DB_SCHEMA, value: neuron }            # own schema when sharing a database
+      - { key: DB_POOL_MAX, value: "4" }
+      - { key: ARTIFACT_STORE, value: db }           # no persistent disk on the free plan
+      - { key: APP_DOMAIN, value: neuronai.online }
+      - { key: APP_URL, value: https://neuronai.online }
+      - { key: SOLANA_CLUSTER, value: devnet }
+      - { key: SOLANA_RPC, value: https://api.devnet.solana.com }
+      - { key: SOLANA_FINALITY, value: finalized }
+      - { key: WORKER_CONCURRENCY, value: "1" }

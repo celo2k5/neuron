@@ -5,8 +5,12 @@ import pg from "pg";
 import { fileURLToPath } from "node:url";
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "db", "migrations");
+const schema = process.env.DB_SCHEMA;
+if (schema && !/^[a-z_][a-z0-9_]*$/.test(schema)) throw new Error("DB_SCHEMA must be a plain lowercase identifier");
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
+// sharing a database with other apps: everything NEURON creates lives in its own schema
+if (schema) { await client.query(`create schema if not exists ${schema}`); await client.query(`set search_path to ${schema}`); }
 await client.query("create table if not exists schema_migrations (version text primary key, applied_at timestamptz not null default now())");
 const done = new Set((await client.query<{ version: string }>("select version from schema_migrations")).rows.map((r) => r.version));
 for (const f of (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort()) {
