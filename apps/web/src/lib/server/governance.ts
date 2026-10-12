@@ -9,21 +9,31 @@ import { enqueue } from "./jobs";
 
 /**
  * Governance rules (also rendered on the Governance page):
- *  - weight: $NEURON balance of the voting wallet read at `confirmed` commitment at the moment of voting
- *    (a historical snapshot needs an indexer of balances; this is documented as a known limitation)
+ *  - weight: one signed vote per wallet, weight 1, kept entirely on the server.
+ *    Only if a $NEURON mint is configured does weight become the wallet's token balance at vote time.
  *  - one signed vote per wallet per proposal; signatures are domain-separated and single-use
  *  - proposal threshold, quorum (sum of weights) and approval (bps of for/(for+against)) are explicit per proposal
  *  - "policy" proposals may only change whitelisted community-network parameters, after an execution delay
  *  - nothing here can move treasury funds
  */
-export const RULES = {
-  proposalThresholdBase: BigInt(process.env.GOV_PROPOSAL_THRESHOLD ?? "100000000"),
-  quorumBase: BigInt(process.env.GOV_QUORUM ?? "1000000000"),
-  approvalBps: 6000,
-  votingPeriodSec: Number(process.env.GOV_VOTING_PERIOD_SEC ?? 3 * 86400),
-  executionDelaySec: Number(process.env.GOV_EXECUTION_DELAY_SEC ?? 86400),
-  snapshotRule: "balance-at-vote (confirmed); one vote per wallet",
-};
+const tokenWeighted = () => !!process.env.NEURON_MINT;
+export function rules() {
+  const t = tokenWeighted();
+  return {
+    weighting: t ? ("token" as const) : ("wallet" as const),
+    /** token mode: base units held to propose; wallet mode: any signed-in wallet (rate limited) */
+    proposalThresholdBase: t ? BigInt(process.env.GOV_PROPOSAL_THRESHOLD ?? "100000000") : 0n,
+    /** token mode: sum of base units; wallet mode: number of voting wallets */
+    quorumBase: t ? BigInt(process.env.GOV_QUORUM ?? "1000000000") : BigInt(process.env.GOV_QUORUM_VOTERS ?? "3"),
+    approvalBps: 6000,
+    votingPeriodSec: Number(process.env.GOV_VOTING_PERIOD_SEC ?? 3 * 86400),
+    executionDelaySec: Number(process.env.GOV_EXECUTION_DELAY_SEC ?? 86400),
+    snapshotRule: t ? "token balance at vote; one vote per wallet" : "one signed vote per wallet, weight 1",
+  };
+}
+async function weightOf(wallet: string) {
+  return tokenWeighted() ? (await walletBalance(wallet)).amount : "1";
+}
 
 export const PolicyChange = z.discriminatedUnion("type", [
   z.object({ type: z.literal("set_max_per_layer"), value: z.number().int().min(8).max(48) }),
@@ -36,8 +46,13 @@ export const votePayloadHash = (proposalId: string, choice: string) => hashCanon
 export async function createProposal(s: Session, p: { kind: "advisory" | "policy"; title: string; body: string; change?: PolicyChange }) {
   if (p.kind === "policy" && !p.change) throw bad("Policy proposals need a change.");
   if (p.kind === "advisory" && p.change) throw bad("Advisory proposals cannot carry an executable change.");
-  const bal = await walletBalance(s.wallet);
-  if (BigInt(bal.amount) < RULES.proposalThresholdBase) throw forbidden(`Proposing needs at least ${RULES.proposalThresholdBase} base units of $NEURON; you hold ${bal.amount}.`);
+  const RULES = rules();
+  if (RULES.weighting === "token") {
+    const bal = await walletBalance(s.wallet);
+    if (BigInt(bal.amount) < RULES.proposalThresholdBase) throw forbidden(`Proposing needs at least ${RULES.proposalThresholdBase} base units of $NEURON; you hold ${bal.amount}.`);
+  }
+  const open = await one<{ n: number }>("select count(*)::int as n from proposals where author_id = $1 and status = 'active'", [s.userId]);
+  if ((open?.n ?? 0) >= 2) throw conflict("You already have two active proposals; wait for one to close.");
   const now = new Date();
   const ends = new Date(now.getTime() + RULES.votingPeriodSec * 1000);
   const row = (await one<{ id: string }>(
@@ -50,7 +65,7 @@ export async function createProposal(s: Session, p: { kind: "advisory" | "policy
 }
 
 export async function castVote(s: Session, proposalId: string, choice: "for" | "against" | "abstain", signed: { message: string; signature: string }) {
-  const bal = await walletBalance(s.wallet);
+  const weight = await weightOf(s.wallet);
   return tx(async (db) => {
     const c = await consumeChallenge(db, signed.message, signed.signature, "vote", votePayloadHash(proposalId, choice));
     const p = await one<{ status: string; starts_at: string; ends_at: string }>("select status, starts_at, ends_at from proposals where id = $1 for update", [proposalId], db);
@@ -58,10 +73,10 @@ export async function castVote(s: Session, proposalId: string, choice: "for" | "
     if (p.status !== "active" || Date.now() > Date.parse(p.ends_at)) throw conflict("Voting has closed.");
     const ins = await db.query(
       "insert into votes (proposal_id, user_id, wallet, choice, weight, signature, nonce) values ($1,$2,$3,$4,$5,$6,$7) on conflict (proposal_id, user_id) do nothing",
-      [proposalId, s.userId, s.wallet, choice, bal.amount, signed.signature, c.nonce]);
+      [proposalId, s.userId, s.wallet, choice, weight, signed.signature, c.nonce]);
     if (ins.rowCount !== 1) throw conflict("This wallet already voted on this proposal.");
-    await emit(db, "governance.vote", proposalId, { choice, weight: bal.amount }, s.userId);
-    return { weight: bal.amount };
+    await emit(db, "governance.vote", proposalId, { choice, weight }, s.userId);
+    return { weight };
   });
 }
 

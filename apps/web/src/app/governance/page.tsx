@@ -3,41 +3,40 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ACTIVATIONS } from "@neuron/engine";
 import { api } from "@/lib/client/api";
-import { useConfig, useSession, useSignedAction } from "@/lib/client/wallet";
+import { useSession, useSignedAction } from "@/lib/client/wallet";
 import { Empty, ErrorBox, NumberField, Panel, StatusPill, ago, count, short, PageHeader } from "@/components/ui";
 
 interface Proposal { id: string; kind: string; title: string; body: string; change: Record<string, unknown> | null; status: string; quorum: string; approval_bps: number; starts_at: string; ends_at: string; execute_after: string | null; author_wallet: string; tally: { for: string; against: string; abstain: string; total: string; voters: number } }
-interface Gov { rules: { proposalThresholdBase: string; quorumBase: string; approvalBps: number; votingPeriodSec: number; executionDelaySec: number; snapshotRule: string }; items: Proposal[] }
+interface Gov { rules: { weighting: "wallet" | "token"; proposalThresholdBase: string; quorumBase: string; approvalBps: number; votingPeriodSec: number; executionDelaySec: number; snapshotRule: string }; items: Proposal[] }
 
 export default function GovernancePage() {
   const q = useQuery({ queryKey: ["governance"], queryFn: () => api<Gov>("/api/governance") });
-  const { data: cfg } = useConfig();
   const r = q.data?.rules;
+  const byWallet = r?.weighting !== "token";
   return (
     <div className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8">
-      <PageHeader title="Rules before votes.">Token holders can make advisory proposals or bounded policy changes to the community network. No vote can move treasury funds, and no off-chain vote executes anything outside the whitelisted network parameters.</PageHeader>
-      {!cfg?.mint && <div className="mt-4 border border-warn/60 p-3 text-warn">Governance needs a configured $NEURON mint to read voting weight. It is disabled here.</div>}
+      <PageHeader title="Rules before votes.">Any signed-in wallet can make an advisory proposal or a bounded policy change to the community network, and vote with a signed message. Votes are counted on the server; nothing outside the whitelisted network parameters can be executed.</PageHeader>
       <div className="mt-6 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">
           <Panel title="explicit rules">
             {r && (
               <dl className="kv text-[12.5px]" data-testid="gov-rules">
                 <dt>weight</dt><dd>{r.snapshotRule}</dd>
-                <dt>threshold</dt><dd className="tnum">{count(Number(r.proposalThresholdBase))} base units to propose</dd>
-                <dt>quorum</dt><dd className="tnum">{count(Number(r.quorumBase))} base units total</dd>
+                <dt>threshold</dt><dd className="tnum">{byWallet ? "any signed-in wallet (up to 2 open proposals)" : `${count(Number(r.proposalThresholdBase))} base units to propose`}</dd>
+                <dt>quorum</dt><dd className="tnum">{byWallet ? `${count(Number(r.quorumBase))} voting wallets` : `${count(Number(r.quorumBase))} base units total`}</dd>
                 <dt>approval</dt><dd className="tnum">{r.approvalBps / 100}% of for+against</dd>
                 <dt>voting</dt><dd className="tnum">{(r.votingPeriodSec / 3600).toFixed(1)} h</dd>
                 <dt>delay</dt><dd className="tnum">{(r.executionDelaySec / 3600).toFixed(1)} h before execution</dd>
                 <dt>delegation</dt><dd>none (one wallet, one signed vote)</dd>
                 <dt>executable</dt><dd>max neurons per layer (8–48); a hidden layer&apos;s activation</dd>
-                <dt>never</dt><dd>treasury transfers, other users&apos; parameters</dd>
+                <dt>never</dt><dd>funds, credits, other users&apos; parameters</dd>
               </dl>
             )}
-            <p className="mt-2 text-[12px] text-faint">Known limitation: weight is the balance at vote time, not a historical snapshot. A balance-snapshot indexer would close this gap.</p>
+            <p className="mt-2 text-[12px] text-faint">{byWallet ? "Each vote is a single-use message signed by your wallet and bound to the proposal and choice, so it can't be replayed or altered." : "Known limitation: weight is the balance at vote time, not a historical snapshot."}</p>
           </Panel>
           <NewProposal />
         </div>
-        <Panel title="proposals">
+        <Panel className="self-start" title="proposals">
           {q.error && <ErrorBox error={q.error} />}
           {!q.data?.items.length ? <Empty title="no proposals yet" /> : q.data.items.map((p) => <ProposalRow key={p.id} p={p} />)}
         </Panel>
@@ -66,7 +65,7 @@ function ProposalRow({ p }: { p: Proposal }) {
       <p className="mt-1 whitespace-pre-wrap text-muted">{p.body}</p>
       {p.change && <pre className="mt-1 overflow-x-auto text-[12px] text-accent-2">{JSON.stringify(p.change)}</pre>}
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line" role="meter" aria-label="Share of votes for" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><div className="h-1.5 origin-left rounded-full bg-good" style={{ transform: `scaleX(${pct / 100})` }} /></div>
-      <div className="mt-1 flex flex-wrap gap-4 text-[12px] tnum text-muted"><span>for {count(Number(t.for))}</span><span>against {count(Number(t.against))}</span><span>abstain {count(Number(t.abstain))}</span><span>{t.voters} voters</span><span>quorum {t.total}/{p.quorum}</span><span>by {short(p.author_wallet)}</span><span>{Date.parse(p.ends_at) > Date.now() ? "ends" : "ended"} {ago(p.ends_at)}</span></div>
+      <div className="mt-1 flex flex-wrap gap-4 text-[12px] tnum text-muted"><span>for {count(Number(t.for))}</span><span>against {count(Number(t.against))}</span><span>abstain {count(Number(t.abstain))}</span><span>{t.voters} voters</span><span>quorum {count(Number(t.total))}/{count(Number(p.quorum))}</span><span>by {short(p.author_wallet)}</span><span>{Date.parse(p.ends_at) > Date.now() ? "ends" : "ended"} {ago(p.ends_at)}</span></div>
       {p.status === "active" && session.data?.session && <div className="mt-2 flex gap-3">{(["for", "against", "abstain"] as const).map((c) => <button key={c} className="act" disabled={!!voting} aria-busy={voting === c} onClick={() => vote(c)}>{voting === c ? "Waiting for signature…" : `Sign vote: ${c}`}</button>)}</div>}
       <ErrorBox error={err} />
     </article>

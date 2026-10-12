@@ -18,21 +18,18 @@ flowchart LR
   end
   PG[(PostgreSQL<br/>metadata + ledgers)]
   OBJ[(Artifact store<br/>content-addressed)]
-  SOL[(Solana<br/>neuron_registry + SPL $NEURON)]
 
   UI --> API
   UI <-- events --> SSE
   UI --> R
   UI --> TW
   E1 -. same code .- E2
-  WAL -- sign challenge / tx --> SOL
-  API --> PG
+  WAL -- signed sign-in / vote messages --> API
+  API -- signed hash-chained registry --> PG
   API --> OBJ
-  API -- read mint, build txs --> SOL
   W --> PG
   W --> OBJ
   W --> T
-  W -- reconcile payments, index commits --> SOL
   SSE --> PG
 ```
 
@@ -42,16 +39,15 @@ flowchart LR
 | --- | --- |
 | `packages/engine` | Deterministic generator, matrix inference, backprop, SGD/Adam, datasets, canonical encoding + SHA-256, community-network compiler. Pure TS, no I/O. |
 | `packages/viz` | Graph extraction, six deterministic layouts, seed palettes, propagation schedule. Never mutates a model. |
-| `packages/solana` | Registry instruction builders/decoders, PDA derivation, SIWS-style challenges, payment tx builder and independent payment inspection. |
-| `programs/neuron_registry` | Anchor program: `initialize`, `set_paused`, `commit_experiment`. |
-| `apps/web` | Next.js app (UI + API), worker, migrations, localnet bootstrap, E2E and integration tests. |
+| `packages/solana` | SIWS-style wallet challenges; optional token payment builder and inspection (only used if a mint is configured). |
+| `apps/web` | Next.js app (UI + API), server registry, credits, governance, worker, migrations, E2E and integration tests. |
 
 ## Data flow of an experiment
 
 1. Client posts `{modelId, version, input}`. API loads the pinned version **from the artifact store**, re-validates both hashes, validates the input, writes `experiments(queued)` + a `jobs` row in one transaction (credits reserved if beyond the free tier).
 2. Worker claims the job (`FOR UPDATE SKIP LOCKED`), runs the engine, stores the full activation trace as an artifact, writes output, summaries, result/metadata hashes, settles credits, emits `experiment.completed`.
 3. SSE pushes the event id; clients refetch the experiment (events are hints, never state).
-4. Optionally the owner commits `(result, artifact, metadata)` hashes to a PDA; the indexer and `PUT /api/commitments/:id` match it by PDA and verify.
+4. Optionally the owner records `(result, artifact, metadata)` hashes in the server registry: an append-only, hash-chained, ed25519-signed log in Postgres (`POST /api/commitments/:id`). Anyone can re-verify (`GET`).
 
 ## Why a Postgres queue instead of Redis/BullMQ
 

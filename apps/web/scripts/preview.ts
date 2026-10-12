@@ -3,9 +3,8 @@
  *   npm install && npm run preview      → http://localhost:3000
  *
  * Starts an embedded PostgreSQL in .neuron-preview/, applies migrations, seeds the gallery,
- * then runs the Next dev server and the job worker. Chain features (payments, on-chain
- * commitments) stay visibly "not configured" unless you also run `npm run localnet` and put
- * its env into apps/web/.env.local.
+ * then runs the Next dev server and the job worker. Everything (registry, credits, governance)
+ * runs on the server; nothing needs a blockchain.
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -27,7 +26,7 @@ await pg.start();
 if (fresh) await pg.createDatabase("neuron");
 const DATABASE_URL = `postgres://neuron:neuron@127.0.0.1:${PORT}/neuron`;
 
-// .env.local (from `npm run localnet`) wins for chain settings; the preview DB always wins for DATABASE_URL
+// .env.local wins for other settings; the preview DB always wins for DATABASE_URL
 const fileEnv: Record<string, string> = {};
 const envFile = path.join(web, ".env.local");
 if (existsSync(envFile)) for (const line of readFileSync(envFile, "utf8").split(/\r?\n/)) {

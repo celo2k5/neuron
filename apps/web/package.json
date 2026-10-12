@@ -13,7 +13,6 @@
     "test:e2e": "playwright test",
     "db:migrate": "tsx scripts/migrate.ts",
     "worker": "tsx scripts/worker.ts",
-    "localnet:setup": "tsx scripts/localnet-setup.ts",
     "db:seed": "tsx scripts/seed.ts",
     "openapi": "tsx -e \"import('./src/lib/openapi.ts').then(m=>require('fs').writeFileSync('../../docs/openapi.json', JSON.stringify(m.openapi(),null,2)))\"",
     "preview": "tsx scripts/preview.ts"

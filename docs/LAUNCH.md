@@ -1,52 +1,25 @@
-# Mainnet launch checklist
+# Launch checklist
 
-Nothing here runs against mainnet automatically. The app refuses `mainnet-beta` unless `ALLOW_MAINNET=yes`, never creates a token outside localnet, and every mainnet step that spends SOL or uses a key is done by the owner's wallet.
+NEURON runs entirely on the server: registry, credits, governance, training and the community network all live in Postgres. There is no on-chain program to deploy and nothing here spends SOL.
 
-## 1. Devnet rehearsal (free)
+## 1. Hosting (Render)
 
-- [ ] Fund the devnet deployer with ~2.5 devnet SOL at https://faucet.solana.com (address printed by `bash infra/devnet.sh`)
-- [ ] `bash infra/devnet.sh`: builds the program with a fresh devnet id, deploys it, initialises the registry, creates a TEST mint and treasury, funds a rehearsal user, writes `infra/.devnet/app.env`
-- [ ] Start the app and worker with `infra/.devnet/app.env` (`SOLANA_CLUSTER=devnet`, `SOLANA_FINALITY=finalized`)
-- [ ] `APP_URL=http://localhost:3000 npx tsx scripts/devnet-rehearsal.ts` (in `apps/web`): sign-in → buy credits → experiment → commit → verify
-- [ ] Repeat once in a browser with Phantom or Solflare switched to devnet
+- [x] Web service `neuron` on Render (free plan, Virginia), app + worker in one instance via `apps/web/scripts/start-all.sh`
+- [x] `ARTIFACT_STORE=db`, `DB_SCHEMA=neuron`, `DB_POOL_MAX=4`, `APP_DOMAIN=neuronai.online`, `APP_URL=https://neuronai.online`
+- [x] Custom domain `neuronai.online` (www redirects to it); Porkbun ALIAS + www CNAME → `neuron-oijh.onrender.com`
+- [ ] `DATABASE_URL` = the Postgres **Internal Database URL** (owner adds it in Render → Environment)
+- [ ] `REGISTRY_SIGNING_KEY` = 64 hex chars from `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, kept only in Render's environment and a password manager. Optional: without it a key is generated and stored in the database.
+- [ ] Optional: `DAILY_CLAIM_CREDITS` (default 10), `FREE_EXPERIMENTS_PER_DAY` (25), `GOV_QUORUM_VOTERS` (3)
 
-Keys live in `infra/.devnet/` (git-ignored, devnet only). Never reuse them on mainnet.
+## 2. Before real traffic
 
-## 2. Close the gaps in `docs/SECURITY.md`
+- [ ] The shared free Postgres expires on 2026-10-27: move to a paid or dedicated database and restore a dump before then
+- [ ] Free web instances sleep after 15 idle minutes (slow first request) and the worker sleeps with it: a paid instance keeps both awake
+- [ ] Daily `pg_dump` backups (see `RUNBOOK.md`)
+- [ ] Monitoring on `/api/health`, `/api/ready`, `/api/metrics` (alerts include a broken registry chain)
+- [ ] CDN / WAF in front for abuse protection
 
-- [ ] External audit of `programs/neuron_registry` and the payment verification (`apps/web/src/lib/server/payments.ts`, `packages/solana/src/payments.ts`)
-- [ ] Program upgrade authority → multisig (e.g. Squads), or revoked
-- [ ] Treasury owner → multisig
-- [ ] Governance weight: add balance snapshots, or launch governance as advisory only
-- [ ] Artifact store → object storage with versioning and backups
-- [ ] CDN / WAF in front of the app
+## 3. Optional later
 
-## 3. Token (owner's wallet)
-
-- [ ] Decide decimals (the app assumes 6), supply and distribution
-- [ ] Create the mint with **no freeze authority**; lock or burn the mint authority after the initial mint
-- [ ] Add token metadata (name, symbol, logo)
-- [ ] Legal review of how the token and credits are sold and described
-
-## 4. Program (owner's wallet)
-
-- [ ] New mainnet program keypair; build with that id (same approach as `infra/devnet.sh`)
-- [ ] Deploy (~1 SOL stays as program rent; the deploy briefly needs ~2 SOL plus fees)
-- [ ] Initialise the registry with a dedicated admin key (it can only pause new commits)
-- [ ] Move the upgrade authority to the multisig
-
-## 5. Hosting
-
-- [ ] Next.js app + worker + managed Postgres (Render, Fly, or similar); run migrations
-- [ ] Paid RPC (Helius, Triton, QuickNode)
-- [ ] Production env:
-  `SOLANA_CLUSTER=mainnet-beta` · `ALLOW_MAINNET=yes` · `SOLANA_FINALITY=finalized` ·
-  `REGISTRY_PROGRAM_ID` · `NEURON_MINT` · `TREASURY_OWNER` · `APP_DOMAIN` / `APP_URL` (real domain) ·
-  `DEV_MINT_AUTHORITY_KEYPAIR` empty
-- [ ] Monitoring: `/api/health`, `/api/ready`, `/api/metrics`; database backups
-
-## 6. Soft launch
-
-- [ ] One small real credit purchase and one commit by the team; check both on an explorer
-- [ ] Publish the mint address only after it exists and is verified
-- [ ] Announce
+- [ ] Publish the registry head hash somewhere public on a schedule, so rewrites are detectable without trusting the operator
+- [ ] A `$NEURON` token: setting `NEURON_MINT` + `TREASURY_OWNER` enables buying credits with it and token-weighted governance. Nothing else needs it.

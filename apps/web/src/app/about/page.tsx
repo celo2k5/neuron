@@ -13,7 +13,7 @@ export default function About() {
   return (
     <div className="mx-auto max-w-[1200px] px-5 pt-14 sm:px-8">
       <h1 className="display mt-2 text-[clamp(48px,6vw,92px)]">One token.<br />Infinite connections.</h1>
-      <p className="mt-6 max-w-[62ch] text-[17px] text-muted">A laboratory for neural computation you can see and check. It generates models from seeds, runs them, trains small ones, and records hashes of what happened on Solana. This page states what the system does and, as importantly, what it does not claim.</p>
+      <p className="mt-6 max-w-[62ch] text-[17px] text-muted">A laboratory for neural computation you can see and check. It generates models from seeds, runs them, trains small ones, and records signed hashes of what happened in a tamper-evident registry. This page states what the system does and, as importantly, what it does not claim.</p>
 
       <S id="math" n="01" title="Model math">
         <p>Each layer computes <code>z = W·a + b</code> (a dense matrix–vector product; sparse layers store pruned weights as exact zeros under a mask), adds an identity skip <code>+ a[l−2]</code> on residual layers, then applies its activation: ReLU, leaky ReLU (0.01), sigmoid, tanh, linear, or a numerically stable softmax on the output layer.</p>
@@ -27,14 +27,15 @@ export default function About() {
         <p>Generation is bit-exact across conforming JavaScript engines. Inference uses <code>Math.exp</code> and <code>Math.tanh</code>, which the language does not require to be correctly rounded, so different engines or hardware may differ in the last bits. The reproduce action reports <b>exact</b>, <b>within tolerance</b> (|Δ| ≤ {TOLERANCE.abs} or relative ≤ {TOLERANCE.rel}) or <b>mismatch</b>.</p>
       </S>
       <S id="verification" n="04" title="What verification means">
-        <p>Committing an experiment writes its result, artifact and metadata hashes to a PDA of the NEURON registry program, owned by your wallet. <b>Verified</b> means the on-chain record equals hashes recomputed from the stored experiment. It proves what was recorded, by whom and at which slot. It does <b>not</b> prove the off-chain arithmetic was correct; anyone can re-run the pinned version to check that. A cryptographic proof of inference would be a separate future feature.</p>
+        <p>Recording an experiment appends its result, artifact and metadata hashes to the NEURON registry: an append-only log where every entry contains the hash of the entry before it and is signed with the server&apos;s ed25519 registry key. The database also refuses any update or delete of an entry.</p>
+        <p><b>Verified</b> means the entry&apos;s hashes equal hashes recomputed from the stored experiment, the entry hash recomputes, the signature checks against the published key, and the entry links to its predecessor. It shows what was recorded, for which wallet and when, and that it hasn&apos;t been edited since. It does <b>not</b> prove the arithmetic was correct; anyone can re-run the pinned version to check that.</p>
       </S>
       <S id="limits" n="05" title="Limits">
         <p>Models: ≤ {LIMITS.maxLayers} layers, ≤ {LIMITS.maxWidth} neurons per layer, ≤ {LIMITS.maxNeurons} neurons, ≤ {LIMITS.maxParams} potential parameters, inputs within ±{LIMITS.maxAbsInput}. Training: ≤ {TRAIN_LIMITS.maxEpochs} epochs, ≤ {TRAIN_LIMITS.maxDataset} samples, batch ≤ {TRAIN_LIMITS.maxBatch}, in an isolated worker thread with a 256 MB heap cap and a wall-clock limit.</p>
         <p>Generated models are not trained and carry no learned behaviour. Training on toy datasets improves only the measured loss and accuracy shown, on those datasets.</p>
       </S>
       <S id="trust" n="06" title="Trust assumptions">
-        <p>The API operator can see experiment inputs. The registry authority can pause new commitments but cannot alter or delete existing ones. The treasury receives credit payments; nothing in governance can move it. Wallet sign-in uses single-use, domain- and cluster-bound challenges; NEURON never asks for private keys.</p>
+        <p>The API operator can see experiment inputs and holds the registry signing key. Because the log is hash-chained and its head is shown publicly on the Ledger, a rewrite of history is detectable by anyone who saved an earlier head or entry. Governance can only change whitelisted community-network parameters. Wallet sign-in uses single-use, domain-bound challenges; NEURON never asks for private keys and never moves funds.</p>
         <p>Full details: <code>docs/SECURITY.md</code> and <Link href="/ops">operations status</Link>.</p>
       </S>
     </div>

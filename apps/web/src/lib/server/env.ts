@@ -13,7 +13,8 @@ const schema = z.object({
   SOLANA_CLUSTER: z.enum(["localnet", "devnet", "mainnet-beta"]).default("localnet"),
   SOLANA_RPC: z.string().url().default("http://127.0.0.1:8899"),
   SOLANA_FINALITY: z.enum(["confirmed", "finalized"]).default("finalized"),
-  REGISTRY_PROGRAM_ID: z.string().optional(),
+  /** optional 32-byte ed25519 seed (hex) for the registry signing key; otherwise one is generated and kept in the database */
+  REGISTRY_SIGNING_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/).optional(),
   NEURON_MINT: z.string().optional(),
   TREASURY_OWNER: z.string().optional(),
   CREDIT_PRICE_BASE_UNITS: z.string().regex(/^\d+$/).default("1000000"),
@@ -21,6 +22,8 @@ const schema = z.object({
   FREE_TRAINING_PER_DAY: z.coerce.number().int().min(0).default(3),
   FREE_TRAINING_MAX_EPOCHS: z.coerce.number().int().min(1).default(300),
   REGISTRATION_CREDITS: z.coerce.number().int().min(0).default(5),
+  /** credits any signed-in wallet can claim once per UTC day */
+  DAILY_CLAIM_CREDITS: z.coerce.number().int().min(0).default(10),
   SESSION_TTL_HOURS: z.coerce.number().int().min(1).default(24),
 });
 
@@ -43,10 +46,13 @@ export function env(): Env {
 /** What the UI needs to know about integrations — including what is NOT configured. */
 export function publicConfig() {
   const e = env();
+  const tokenEnabled = !!(e.NEURON_MINT && e.TREASURY_OWNER);
   return {
+    /** everything core (registry, credits, governance) runs on the server; the token is an optional add-on */
+    registry: "server" as const,
     cluster: e.SOLANA_CLUSTER,
     rpc: e.SOLANA_RPC,
-    programId: e.REGISTRY_PROGRAM_ID ?? null,
+    tokenEnabled,
     mint: e.NEURON_MINT ?? null,
     treasury: e.TREASURY_OWNER ?? null,
     creditPriceBaseUnits: e.CREDIT_PRICE_BASE_UNITS,
@@ -54,10 +60,9 @@ export function publicConfig() {
     freeTrainingPerDay: e.FREE_TRAINING_PER_DAY,
     freeTrainingMaxEpochs: e.FREE_TRAINING_MAX_EPOCHS,
     registrationCredits: e.REGISTRATION_CREDITS,
+    dailyClaimCredits: e.DAILY_CLAIM_CREDITS,
     blockers: [
-      !e.REGISTRY_PROGRAM_ID && "REGISTRY_PROGRAM_ID is not set — on-chain commitments are disabled",
-      !e.NEURON_MINT && "NEURON_MINT is not set — token balances and credit purchases are disabled",
-      !e.TREASURY_OWNER && "TREASURY_OWNER is not set — credit purchases are disabled",
+      !!e.NEURON_MINT !== !!e.TREASURY_OWNER && "NEURON_MINT and TREASURY_OWNER must both be set to sell credits for $NEURON",
     ].filter(Boolean) as string[],
   };
 }

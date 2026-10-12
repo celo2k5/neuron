@@ -1,6 +1,6 @@
 /**
  * NEURON worker: durable Postgres job queue (FOR UPDATE SKIP LOCKED) for experiments, training,
- * payment reconciliation, registry indexing and governance execution.
+ * optional token-payment reconciliation and governance execution.
  * Run: npm run worker   (reads the same env as the web app)
  */
 import os from "node:os";
@@ -8,18 +8,17 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildSync } from "esbuild";
 import { pool, tx, one } from "../src/lib/server/db";
-import { claim, complete, fail, requeueStale, enqueue, type JobKind } from "../src/lib/server/jobs";
+import { claim, complete, fail, requeueStale, type JobKind } from "../src/lib/server/jobs";
 import { executeExperiment, failExperiment } from "../src/lib/server/experiments";
 import { runTraining } from "../src/lib/server/training-runner";
 import { reconcileIntent } from "../src/lib/server/payments";
-import { indexRegistry } from "../src/lib/server/commitments";
 import { processProposal } from "../src/lib/server/governance";
 import { ensureNetwork } from "../src/lib/server/community";
 import { env } from "../src/lib/server/env";
 import { log } from "../src/lib/server/log";
 
 const WORKER_ID = `${os.hostname()}-${process.pid}`;
-const KINDS: JobKind[] = ["experiment", "training", "reconcile_payment", "index_registry", "governance_execute"];
+const KINDS: JobKind[] = ["experiment", "training", "reconcile_payment", "governance_execute"];
 const MAX_CONCURRENT = Number(process.env.WORKER_CONCURRENCY ?? 3);
 // The training thread is bundled once at startup so it runs as plain JS with no loader hooks.
 const threadUrl = (() => {
@@ -45,7 +44,6 @@ async function handle(job: { id: string; kind: JobKind; payload: Record<string, 
       if (r.retry) throw new Retry(r.reason ?? "awaiting finality");
       return r;
     }
-    case "index_registry": return indexRegistry(pool());
     case "governance_execute": {
       const r = await tx((db) => processProposal(db, String(p.proposalId)));
       if (!r.done) throw new Retry("waiting for proposal deadline", r.runAfter);
@@ -97,10 +95,7 @@ async function main() {
       lastHousekeeping = Date.now();
       const stale = await requeueStale(pool()).catch(() => []);
       if (stale.length) log.warn("jobs_requeued", { count: stale.length });
-      if (env().REGISTRY_PROGRAM_ID) {
-        await enqueue(pool(), "index_registry", {}, { idempotencyKey: `index:${Math.floor(Date.now() / 10_000)}`, maxAttempts: 1 }).catch(() => {});
-      }
-      await pool().query("delete from jobs where kind = 'index_registry' and status in ('completed','dead') and created_at < now() - interval '1 hour'").catch(() => {});
+      await pool().query("delete from jobs where kind = 'index_registry'").catch(() => {});
     }
     let took = false;
     if (running < MAX_CONCURRENT) took = await runOne().catch((e) => { log.error("claim_failed", { error: (e as Error).message }); return false; });

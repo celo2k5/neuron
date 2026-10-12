@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
@@ -71,11 +72,11 @@ export function WalletButton() {
               <div className="flex items-baseline justify-between"><span className="text-[13px] font-medium">{w.label}</span><span className="tnum text-muted">{short(w.address, 6)}</span></div>
               <div className="mt-2 break-all text-[11.5px] text-faint">{w.address}</div>
               {signedIn ? (
-                <dl className="kv mt-3">
+                <><dl className="kv mt-3">
                   <dt>credits</dt><dd data-testid="credits-available">{s?.credits?.available ?? 0} available</dd>
                   <dt>reserved</dt><dd>{s?.credits?.reserved ?? 0}</dd>
-                  <dt>cluster</dt><dd>{s?.session?.cluster}</dd>
                 </dl>
+                <Link href="/credits" className="act-ghost sm mt-3 no-underline">Claim daily credits</Link></>
               ) : (
                 <div className="mt-3">
                   <p className="text-muted">Sign a one-time challenge to start a session. It costs nothing and moves no funds.</p>

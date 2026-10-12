@@ -26,7 +26,8 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
 export interface PublicConfig {
   cluster: "localnet" | "devnet" | "mainnet-beta";
   rpc: string;
-  programId: string | null;
+  registry: "server";
+  tokenEnabled: boolean;
   mint: string | null;
   treasury: string | null;
   creditPriceBaseUnits: string;
@@ -34,6 +35,7 @@ export interface PublicConfig {
   freeTrainingPerDay: number;
   freeTrainingMaxEpochs: number;
   registrationCredits: number;
+  dailyClaimCredits: number;
   blockers: string[];
   engine: string;
   limits: Record<string, number>;

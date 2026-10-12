@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(async ({ page }) => { await page.addInitScript(() => { try { sessionStorage.setItem("neuron.booted", "1"); } catch { /* */ } }); });
 
 test("mobile: stacked layout, no horizontal scroll, touch graph", async ({ page }) => {
-  for (const path of ["/", "/lab", "/networks", "/community", "/token"]) {
+  for (const path of ["/", "/lab", "/networks", "/community", "/credits"]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${path} scrolls sideways`).toBeLessThanOrEqual(1);

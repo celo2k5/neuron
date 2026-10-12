@@ -47,7 +47,7 @@ export function Hash({ value, n = 8, label }: { value?: string | null; n?: numbe
 
 export function StatusPill({ status }: { status: string }) {
   const cls: Record<string, string> = {
-    completed: "text-good", verified: "text-good", confirmed: "text-accent-2", running: "text-accent", queued: "text-muted", pending: "text-muted",
+    completed: "text-good", verified: "text-good", recorded: "text-good", claimed: "text-good", confirmed: "text-accent-2", running: "text-accent", queued: "text-muted", pending: "text-muted",
     submitted: "text-accent", paused: "text-warn", failed: "text-bad", mismatch: "text-bad", cancelled: "text-muted", expired: "text-muted",
     not_committed: "text-faint", not_found: "text-warn", passed: "text-good", rejected: "text-bad", executed: "text-accent-2", active: "text-accent", dead: "text-bad",
   };

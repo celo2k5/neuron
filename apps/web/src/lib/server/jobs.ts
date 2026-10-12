@@ -1,6 +1,6 @@
 import { one, q, type Db } from "./db";
 
-export type JobKind = "experiment" | "training" | "index_registry" | "reconcile_payment" | "governance_execute";
+export type JobKind = "experiment" | "training" | "reconcile_payment" | "governance_execute";
 
 export async function enqueue(db: Db, kind: JobKind, payload: Record<string, unknown>, opts: { idempotencyKey?: string; maxAttempts?: number; runAfter?: Date } = {}) {
   const row = await one<{ id: string }>(

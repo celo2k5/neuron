@@ -12,5 +12,4 @@ infra/.localnet
 .neuron-preview
 brag-output/work/
 infra/.devnet
-programs/neuron_registry/target-devnet
 brag-output/

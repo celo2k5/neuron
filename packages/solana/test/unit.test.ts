@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import bs58 from "bs58";
 import nacl from "tweetnacl";
 import { Keypair } from "@solana/web3.js";
-import { challengeMessage, decodeCommitment, experimentIdBytes, fromBaseUnits, parseChallenge, toBaseUnits, verifySignature, type Challenge } from "../src";
+import { challengeMessage, fromBaseUnits, parseChallenge, toBaseUnits, verifySignature, type Challenge } from "../src";
 
 describe("auth challenges", () => {
   const kp = Keypair.generate();
@@ -34,15 +34,5 @@ describe("token amounts", () => {
     expect(fromBaseUnits(12500000n, 6)).toBe("12.5");
     expect(fromBaseUnits("100", 0)).toBe("100");
     expect(toBaseUnits("18446744073709551615", 0)).toBe(18446744073709551615n);
-  });
-});
-
-describe("registry encoding", () => {
-  it("experiment ids are 32 bytes and domain-separated", () => {
-    expect(experimentIdBytes("a")).toHaveLength(32);
-    expect(Buffer.from(experimentIdBytes("a")).toString("hex")).not.toBe(Buffer.from(experimentIdBytes("b")).toString("hex"));
-  });
-  it("refuses to decode foreign accounts", () => {
-    expect(() => decodeCommitment(new Uint8Array(300))).toThrow(/not a Commitment/);
   });
 });

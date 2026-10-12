@@ -6,13 +6,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { VisualForm } from "@neuron/engine";
 import { api } from "@/lib/client/api";
 import { useExperiment, useModelArtifact, useModelDetail } from "@/lib/client/hooks";
-import { useConfig, useNeuronWallet, useSession } from "@/lib/client/wallet";
+import { useSession } from "@/lib/client/wallet";
 import { GraphCanvas } from "./GraphCanvas";
 import { ErrorBox, Hash, Panel, Spinner, StatusPill, VectorBars, fmt, short, When, PageHeader } from "./ui";
 
-interface Verify {
+export interface Verify {
   state: string; localHashesMatch?: boolean; note: string; hashes?: { resultHash: string; metadataHash: string; artifactHash: string };
-  chain?: { owner: string; resultHash: string; slot: string; unixTimestamp: string; pda: string } | null; signature?: string | null; programId?: string; cluster?: string; pda?: string;
+  checks?: { hashesMatch: boolean; entryHashOk: boolean; signatureOk: boolean; chainLinkOk: boolean };
+  record?: { seq: number; entryHash: string; prevHash: string; keyId: string; publicKey: string | null; signature: string; owner: string; resultHash: string; recordedAt: string };
 }
 
 export function explorerTx(sig: string, cluster: string, rpc: string) {
@@ -20,13 +21,17 @@ export function explorerTx(sig: string, cluster: string, rpc: string) {
   return `https://explorer.solana.com/tx/${sig}${c}`;
 }
 
+const Check = ({ ok, children }: { ok: boolean | undefined; children: React.ReactNode }) => (
+  <li className={`flex items-center gap-2 ${ok ? "text-fg" : "text-bad"}`}>
+    <span aria-hidden className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${ok ? "bg-good/20 text-good" : "bg-bad/20"}`}>{ok ? "✓" : "!"}</span>{children}<span className="sr-only">{ok ? "passes" : "fails"}</span>
+  </li>
+);
+
 export function ExperimentDetail({ id }: { id: string }) {
   const { data: e, error, isLoading } = useExperiment(id);
   const model = useModelDetail(e?.model_id ?? null);
   const art = useModelArtifact(e?.model_id ?? null, e?.version);
   const session = useSession();
-  const { data: cfg } = useConfig();
-  const wallet = useNeuronWallet();
   const qc = useQueryClient();
   const router = useRouter();
   const [err, setErr] = useState<unknown>(null);
@@ -46,11 +51,8 @@ export function ExperimentDetail({ id }: { id: string }) {
   const commit = async () => {
     setErr(null); setBusy("commit");
     try {
-      if (wallet.address !== session.data?.session?.wallet) throw new Error("Connect the wallet that owns this experiment.");
-      const p = await api<{ transaction: string }>(`/api/commitments/${id}`, { method: "POST" });
-      const sig = await wallet.sendTransaction(p.transaction);
-      await wallet.connection!.confirmTransaction(sig, "confirmed");
-      await api(`/api/commitments/${id}`, { method: "PUT", json: { signature: sig } });
+      const v = await api<Verify>(`/api/commitments/${id}`, { method: "POST" });
+      qc.setQueryData(["verify", id], v);
       await Promise.all([qc.invalidateQueries({ queryKey: ["verify", id] }), qc.invalidateQueries({ queryKey: ["experiment", id] })]);
     } catch (x) { setErr(x); } finally { setBusy(null); }
   };
@@ -123,25 +125,34 @@ export function ExperimentDetail({ id }: { id: string }) {
                 <tr key={l.layer} className="border-t border-line"><td>L{l.layer}</td><td>{fmt(l.min, 4)}</td><td>{fmt(l.mean, 4)}</td><td>{fmt(l.max, 4)}</td><td>{l.values && <VectorBars values={l.values} height={14} />}</td></tr>
               ))}</tbody></table>
           </Panel>
-          <Panel title="on-chain commitment" meta={cfg?.programId ? `program ${short(cfg.programId, 5)}` : "not configured"} className="lg:col-span-2">
-            {verify.isLoading ? <Spinner label="checking chain" /> : verify.error ? <ErrorBox error={verify.error} /> : verify.data && (
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" data-testid="verification">
+          <Panel title="registry record" meta={verify.data?.record ? `entry #${verify.data.record.seq} · key ${verify.data.record.keyId}` : "signed · hash-chained"} className="lg:col-span-2">
+            {verify.isLoading ? <Spinner label="checking registry" /> : verify.error ? <ErrorBox error={verify.error} /> : verify.data && (
+              <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" data-testid="verification">
                 <div>
-                  <div className="flex items-center gap-2"><StatusPill status={verify.data.state} />{verify.data.localHashesMatch !== undefined && <span className={verify.data.localHashesMatch ? "text-good" : "text-bad"}>{verify.data.localHashesMatch ? "stored hashes recompute ✓" : "stored hashes do NOT recompute"}</span>}</div>
-                  <p className="mt-2 text-muted">{verify.data.note}</p>
-                  {verify.data.state === "not_committed" && (
-                    isOwner ? <button className="act-primary mt-3" disabled={!!busy || !cfg?.programId} onClick={commit} data-testid="commit">{busy === "commit" ? "waiting for wallet…" : "commit hashes to solana"}</button>
-                      : <p className="mt-2 text-faint">Only the experiment owner can commit it.</p>
+                  <div className="flex items-center gap-2"><StatusPill status={verify.data.state} />{verify.data.localHashesMatch !== undefined && <span className={verify.data.localHashesMatch ? "text-good" : "text-bad"}>{verify.data.localHashesMatch ? "stored hashes recompute" : "stored hashes do NOT recompute"}</span>}</div>
+                  {verify.data.checks && (
+                    <ul className="mt-3 space-y-1.5 text-[12.5px]" aria-label="Checks">
+                      <Check ok={verify.data.checks.hashesMatch}>Recorded hashes equal the recomputed ones</Check>
+                      <Check ok={verify.data.checks.entryHashOk}>Entry hash recomputes</Check>
+                      <Check ok={verify.data.checks.signatureOk}>Registry signature is valid</Check>
+                      <Check ok={verify.data.checks.chainLinkOk}>Linked to the previous entry</Check>
+                    </ul>
                   )}
-                  <button className="act mt-3 block" disabled={verify.isFetching} onClick={() => verify.refetch()}>{verify.isFetching ? "Re-verifying…" : "Re-verify against chain"}</button>
+                  <p className="mt-3 text-muted">{verify.data.note}</p>
+                  {verify.data.state === "not_committed" && (
+                    isOwner ? <button className="act-primary mt-3" disabled={!!busy} aria-busy={busy === "commit"} onClick={commit} data-testid="commit">{busy === "commit" ? "Recording…" : "Record in registry"}</button>
+                      : <p className="mt-2 text-faint">{session.data?.session ? "Only the experiment owner can record it." : "Sign in as the owner to record it."}</p>
+                  )}
+                  <button className="act mt-3 block" disabled={verify.isFetching} onClick={() => verify.refetch()}>{verify.isFetching ? "Re-verifying…" : "Re-verify"}</button>
                 </div>
                 <dl className="kv text-[12.5px]">
-                  <dt>cluster</dt><dd>{verify.data.cluster ?? cfg?.cluster}</dd>
-                  <dt>pda</dt><dd className="break-all">{verify.data.pda ?? "—"}</dd>
-                  <dt>signature</dt><dd className="break-all">{verify.data.signature ? <a href={explorerTx(verify.data.signature, verify.data.cluster ?? "", cfg?.rpc ?? "")} target="_blank" rel="noreferrer">{short(verify.data.signature, 10)}</a> : "—"}</dd>
-                  <dt>chain slot</dt><dd className="tnum">{verify.data.chain?.slot ?? "—"}</dd>
-                  <dt>chain owner</dt><dd>{verify.data.chain ? short(verify.data.chain.owner, 6) : "—"}</dd>
-                  <dt>chain result</dt><dd><Hash value={verify.data.chain?.resultHash} /></dd>
+                  <dt>entry</dt><dd className="tnum">{verify.data.record ? `#${verify.data.record.seq}` : "—"}</dd>
+                  <dt>recorded</dt><dd>{verify.data.record ? <When iso={verify.data.record.recordedAt} /> : "—"}</dd>
+                  <dt>owner</dt><dd>{verify.data.record ? short(verify.data.record.owner, 6) : "—"}</dd>
+                  <dt>entry hash</dt><dd><Hash value={verify.data.record?.entryHash} /></dd>
+                  <dt>previous</dt><dd><Hash value={verify.data.record?.prevHash} /></dd>
+                  <dt>result</dt><dd><Hash value={verify.data.record?.resultHash} /></dd>
+                  <dt>signer key</dt><dd><Hash value={verify.data.record?.publicKey} /></dd>
                 </dl>
               </div>
             )}

@@ -7,21 +7,17 @@ services:
     ports: ["5433:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck: { test: ["CMD-SHELL", "pg_isready -U neuron"], interval: 3s, retries: 20 }
-  validator:
-    build: { context: ., dockerfile: infra/validator.Dockerfile }
-    ports: ["8899:8899", "8900:8900"]
-    volumes: [ledger:/ledger]
   web:
     build: { context: ., dockerfile: infra/app.Dockerfile }
     command: sh -c "npx tsx apps/web/scripts/migrate.ts && npm run start -w @neuron/web"
     env_file: [.env]
-    environment: { DATABASE_URL: postgres://neuron:neuron@postgres:5432/neuron, SOLANA_RPC: http://validator:8899 }
+    environment: { DATABASE_URL: postgres://neuron:neuron@postgres:5432/neuron }
     ports: ["3000:3000"]
-    depends_on: { postgres: { condition: service_healthy }, validator: { condition: service_started } }
+    depends_on: { postgres: { condition: service_healthy } }
   worker:
     build: { context: ., dockerfile: infra/app.Dockerfile }
     command: npm run worker -w @neuron/web
     env_file: [.env]
-    environment: { DATABASE_URL: postgres://neuron:neuron@postgres:5432/neuron, SOLANA_RPC: http://validator:8899 }
+    environment: { DATABASE_URL: postgres://neuron:neuron@postgres:5432/neuron }
     depends_on: { web: { condition: service_started } }
-volumes: { pgdata: {}, ledger: {} }
+volumes: { pgdata: {} }

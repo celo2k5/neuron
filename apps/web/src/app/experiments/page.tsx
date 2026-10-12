@@ -48,7 +48,7 @@ export default function ExperimentsPage() {
                   <td>{e.elapsed_ms !== null ? `${fmt(e.elapsed_ms, 2)} ms` : "—"}</td>
                   <td className="mono text-muted">{e.owner_wallet ? short(e.owner_wallet) : "anon"}</td>
                   <td className="text-muted">{ago(e.created_at)}</td>
-                  <td><StatusPill status={e.commitment_status === "verified" ? "verified" : e.status} /></td>
+                  <td><StatusPill status={e.commitment_status === "recorded" ? "recorded" : e.status} /></td>
                 </tr>
               ))}
             </tbody>

@@ -75,9 +75,9 @@ export async function failExperiment(db: Db, experimentId: string, error: string
   await emit(db, "experiment.failed", experimentId, { error: error.slice(0, 200) }, e?.owner_id ?? null);
 }
 
-const SELECT = `select e.*, v.version, v.artifact_hash, u.wallet as owner_wallet, c.status as commitment_status, c.signature as commitment_signature
+const SELECT = `select e.*, v.version, v.artifact_hash, u.wallet as owner_wallet, case when r.seq is not null then 'recorded' end as commitment_status, r.entry_hash as commitment_signature
   from experiments e join model_versions v on v.id = e.model_version_id
-  left join users u on u.id = e.owner_id left join commitments c on c.experiment_id = e.id`;
+  left join users u on u.id = e.owner_id left join registry_entries r on r.experiment_id = e.id`;
 
 export async function getExperiment(db: Db, id: string) {
   if (!/^[0-9a-f-]{36}$/.test(id)) throw notFound();
@@ -97,7 +97,7 @@ export async function listExperiments(db: Db, f: { modelId?: string; owner?: str
   return { items: rows.slice(0, f.limit), next: rows.length > f.limit ? rows[f.limit - 1].created_at : null };
 }
 
-/** Recompute hashes from stored fields — the tamper check that runs before any on-chain comparison. */
+/** Recompute hashes from stored fields — the tamper check that runs before any registry comparison. */
 export async function recomputeHashes(db: Db, e: ExperimentRow) {
   if (!e.output || !e.engine) return null;
   const v = await one<{ artifact_hash: string; config_hash: string; version: number }>(

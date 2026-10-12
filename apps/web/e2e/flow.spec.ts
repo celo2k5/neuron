@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * Acceptance flow on a live localnet stack. Each step uses the real UI, real API, real
- * Postgres, real worker and a real solana-test-validator. Nothing is mocked.
+ * Acceptance flow on a live local stack. Each step uses the real UI, real API, real
+ * Postgres and real worker. Nothing is mocked and no blockchain is involved.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -87,21 +87,18 @@ test("reproduce: the same pinned version on the same input matches", async () =>
   await expect(page.getByTestId("repro-result")).toContainText(/Bit-identical|within tolerance/);
 });
 
-test("8. buy credits with local-validator test tokens; credits reconcile once", async () => {
-  await page.goto("/token");
-  await page.getByTestId("wallet-button").click();
-  await page.getByRole("button", { name: "airdrop 2 sol" }).click();
-  await expect(page.getByText("airdropped 2 SOL")).toBeVisible();
-  await page.getByRole("button", { name: "mint test $NEURON" }).click();
-  await expect(page.getByText(/minted 1000 test \$NEURON/)).toBeVisible();
-  await page.getByTestId("wallet-button").click();
+test("8. claim daily credits once; the balance and history update", async () => {
+  await page.goto("/credits");
+  await expect(page.getByTestId("claim-credits")).toBeEnabled();
+  await expect(page.getByTestId("balance-available")).toHaveText(/^\d+$/);
+  const before = Number(await page.getByTestId("balance-available").textContent());
+  await page.getByTestId("claim-credits").click();
+  await expect(page.getByTestId("claimed")).toContainText(/credits added/);
+  await expect(page.getByTestId("balance-available")).toHaveText(String(before + 10));
+  await expect(page.getByTestId("credit-history")).toContainText("daily claim");
   await page.reload();
-  await expect(page.getByTestId("token-balance")).toContainText("1000");
-  await page.getByTestId("create-intent").click();
-  await expect(page.getByTestId("payment-review")).toContainText("10 credits");
-  await page.getByTestId("approve-payment").click();
-  await expect(page.getByTestId("intents")).toContainText(/confirmed/i, { timeout: 60_000 });
-  await expect(page.getByTestId("token-balance")).toContainText("990");
+  await expect(page.getByTestId("claimed")).toContainText("Claimed today");
+  await expect(page.getByTestId("claim-credits")).toHaveCount(0);
 });
 
 test("register a community neuron (credits consumed, new network version)", async () => {
@@ -129,13 +126,15 @@ test("6. train on the server: weights change, metrics and checkpoints recorded",
   await expect(page.getByTestId("network-facts")).toContainText(/trained checkpoint/i);
 });
 
-test("9. commit the experiment on-chain and verify it", async () => {
+test("9. record the experiment in the signed registry and verify it", async () => {
   await page.goto(`/experiments/${state.experimentId}`);
   await page.getByTestId("commit").click();
-  await expect(page.getByTestId("verification")).toContainText(/verified/i, { timeout: 60_000 });
+  await expect(page.getByTestId("verification")).toContainText(/verified/i, { timeout: 30_000 });
   await expect(page.getByTestId("verification")).toContainText("stored hashes recompute");
+  await expect(page.getByTestId("verification")).toContainText("Registry signature is valid");
   await page.goto("/ledger");
   await expect(page.getByTestId("ledger-table")).toContainText(state.experimentId!.slice(0, 8));
+  await expect(page.getByTestId("chain-integrity")).toContainText(/checks? out/);
 });
 
 test("10. state survives a reload (persisted models, versions, history)", async () => {

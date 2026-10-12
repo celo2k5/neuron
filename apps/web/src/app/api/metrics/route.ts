@@ -1,7 +1,6 @@
 import { handler } from "@/lib/server/http";
-import { q, one } from "@/lib/server/db";
-import { rpcHealth, connection } from "@/lib/server/chain";
-import { env } from "@/lib/server/env";
+import { q, one, pool } from "@/lib/server/db";
+import { verifyChain } from "@/lib/server/commitments";
 import { sseConnections } from "@/lib/server/sse";
 export const dynamic = "force-dynamic";
 /** Operational metrics with alert thresholds (see docs/RUNBOOK.md). */
@@ -13,24 +12,15 @@ export const GET = handler(async () => {
     `select (select count(*)::int from experiments where status = 'failed' and created_at > now() - interval '1 hour') as experiments,
             (select count(*)::int from training_jobs where status = 'failed' and created_at > now() - interval '1 hour') as training,
             (select count(*)::int from jobs where status = 'dead') as dead`);
-  const payments = await one<{ pending: number; submitted: number; stale: number }>(
-    `select count(*) filter (where status = 'pending')::int as pending, count(*) filter (where status = 'submitted')::int as submitted,
-            count(*) filter (where status = 'submitted' and updated_at < now() - interval '10 minutes')::int as stale from payment_intents`);
   const compute = await one<{ ms: number }>("select coalesce(sum((resource->>'ms')::float),0) as ms from training_jobs where updated_at > now() - interval '1 hour'");
-  const rpc = await rpcHealth();
-  const idx = await one<{ last_slot: string | null; updated_at: string }>("select last_slot, updated_at from indexer_state where id = 'registry'");
-  const commitmentsPending = await one<{ n: number }>("select count(*)::int as n from commitments where status in ('pending','confirmed')");
-  const indexerLagSlots = rpc.ok && idx?.last_slot ? Number(rpc.slot) - Number(idx.last_slot) : null;
+  const registry = await verifyChain(pool());
+  const claims = await one<{ n: number }>("select count(*)::int as n from credit_events where kind = 'claim' and created_at > now() - interval '24 hours'");
   const alerts: string[] = [];
   const depth = queue.filter((r) => r.status === "queued").reduce((s, r) => s + r.n, 0);
   if (depth > 100) alerts.push(`queue depth ${depth} > 100`);
   if ((failures?.dead ?? 0) > 0) alerts.push(`${failures!.dead} dead-lettered jobs`);
-  if ((payments?.stale ?? 0) > 0) alerts.push(`${payments!.stale} payments unreconciled for >10 min`);
-  if (!rpc.ok) alerts.push("RPC unreachable");
-  else if (rpc.latencyMs > 2000) alerts.push(`RPC latency ${rpc.latencyMs}ms > 2000ms`);
+  if (!registry.intact) alerts.push(`registry chain broken at entry ${registry.firstBadSeq}`);
   if (latency?.p95 && latency.p95 > 500) alerts.push(`experiment p95 ${Math.round(latency.p95)}ms > 500ms`);
-  void connection;
-  return { cluster: env().SOLANA_CLUSTER, queue, experimentLatencyMs: latency, failures, payments, computeMsLastHour: compute?.ms ?? 0, rpc,
-    indexer: { lastSlot: idx?.last_slot ?? null, updatedAt: idx?.updated_at ?? null, lagSlots: indexerLagSlots }, commitmentsPending: commitmentsPending?.n ?? 0,
+  return { queue, experimentLatencyMs: latency, failures, computeMsLastHour: compute?.ms ?? 0, registry, claimsLast24h: claims?.n ?? 0,
     sseConnections: sseConnections(), alerts };
 });

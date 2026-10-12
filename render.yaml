@@ -16,7 +16,5 @@ services:
       - { key: ARTIFACT_STORE, value: db }           # no persistent disk on the free plan
       - { key: APP_DOMAIN, value: neuronai.online }
       - { key: APP_URL, value: https://neuronai.online }
-      - { key: SOLANA_CLUSTER, value: devnet }
-      - { key: SOLANA_RPC, value: https://api.devnet.solana.com }
-      - { key: SOLANA_FINALITY, value: finalized }
+      - { key: SOLANA_CLUSTER, value: devnet }       # only labels wallet sign-in messages; no chain is used
       - { key: WORKER_CONCURRENCY, value: "1" }

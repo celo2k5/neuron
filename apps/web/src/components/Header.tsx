@@ -4,13 +4,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
-import { useConfig } from "@/lib/client/wallet";
 import { useStreamStatus } from "@/lib/client/events";
 import { AnimatePresence, motion } from "motion/react";
 import { spring, exit } from "@/lib/client/motion";
 import { WalletButton } from "./WalletButton";
 import { Glyph } from "./Glyph";
-import { count } from "./ui";
 
 export const NAV = [
   { href: "/lab", label: "Lab" },
@@ -19,33 +17,21 @@ export const NAV = [
   { href: "/experiments", label: "Experiments" },
   { href: "/community", label: "Community" },
   { href: "/ledger", label: "Ledger" },
-  { href: "/token", label: "Token" },
+  { href: "/credits", label: "Credits" },
   { href: "/governance", label: "Governance" },
   { href: "/about", label: "About" },
 ];
 
-const CLUSTER_STYLE: Record<string, { label: string; cls: string; note: string }> = {
-  localnet: { label: "Localnet", cls: "text-warn", note: "Local validator. Test tokens have no value." },
-  devnet: { label: "Devnet", cls: "text-accent-2", note: "Devnet. Test tokens have no value." },
-  "mainnet-beta": { label: "Mainnet", cls: "text-good", note: "Mainnet. Real funds." },
-};
-
-export function ClusterPill() {
-  const { data: cfg } = useConfig();
-  const c = CLUSTER_STYLE[cfg?.cluster ?? ""] ?? { label: "…", cls: "text-muted", note: "" };
-  return <span className={`pill ${c.cls}`} title={c.note}>{c.label}</span>;
-}
-
 function NetworkStatus() {
   const stream = useStreamStatus();
-  const { data } = useQuery({ queryKey: ["ready"], queryFn: () => api<{ ok: boolean; rpc: { ok: boolean; slot?: number; latencyMs: number } }>("/api/ready"), refetchInterval: 15_000 });
-  const rpcOk = data?.rpc.ok;
+  const { data, isError } = useQuery({ queryKey: ["ready"], queryFn: () => api<{ ok: boolean; db: { ms?: number } }>("/api/ready"), refetchInterval: 15_000 });
+  const ok = !!data?.ok && !isError;
+  const live = ok && stream === "live";
   return (
-    <div className="hidden items-center gap-2.5 whitespace-nowrap text-[12px] md:flex" role="group" aria-label="Network status">
-      <ClusterPill />
-      <span className={`hidden items-center gap-1.5 2xl:flex ${rpcOk ? "text-muted" : "text-bad"}`} title={rpcOk ? `RPC latency ${data?.rpc.latencyMs} ms · event stream ${stream}` : "RPC unreachable"}>
-        <span className={`dot ${rpcOk && stream === "live" ? "text-good dot-live" : rpcOk ? "text-warn" : "text-bad"}`} />
-        <span className="tnum">{rpcOk ? `slot ${count(data?.rpc.slot)}` : data ? "RPC offline" : "…"}</span>
+    <div className="hidden items-center gap-2.5 whitespace-nowrap text-[12px] md:flex" role="group" aria-label="Service status">
+      <span className={`flex items-center gap-1.5 ${ok ? "text-muted" : data || isError ? "text-bad" : "text-muted"}`} title={ok ? `Database ${data?.db.ms ?? "?"} ms · event stream ${stream}` : "Service unreachable"}>
+        <span className={`dot ${live ? "text-good dot-live" : ok ? "text-warn" : data || isError ? "text-bad" : "text-muted"}`} />
+        <span>{ok ? (live ? "Live" : "Online") : data || isError ? "Offline" : "…"}</span>
       </span>
     </div>
   );
@@ -106,7 +92,6 @@ export function Header() {
               </motion.li>
             ))}
           </ul>
-          <div className="mt-4"><ClusterPill /></div>
         </motion.nav>
       )}
       </AnimatePresence>

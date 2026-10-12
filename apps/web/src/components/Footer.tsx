@@ -55,9 +55,9 @@ export function Footer() {
           <div className="mb-3 text-[13px] text-muted">Instrument</div>
           <dl className="kv">
             <dt>Engine</dt><dd className="tnum">{cfg?.engine ?? "…"}</dd>
-            <dt>Cluster</dt><dd>{cfg?.cluster ?? "…"}</dd>
-            <dt>Program</dt><dd className="tnum break-all">{cfg?.programId ?? <span className="text-warn">Not configured</span>}</dd>
-            <dt>Mint</dt><dd className="tnum break-all">{cfg?.mint ?? <span className="text-warn">Not configured</span>}</dd>
+            <dt>Registry</dt><dd>Server-signed hash chain</dd>
+            <dt>Credits</dt><dd className="tnum">{cfg ? `${cfg.dailyClaimCredits} free daily` : "…"}</dd>
+            {cfg?.tokenEnabled && <><dt>Mint</dt><dd className="tnum break-all">{cfg.mint}</dd></>}
           </dl>
         </div>
       </div>

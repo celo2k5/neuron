@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-/** E2E against a running stack: `npm run localnet`, `npm run dev`, `npm run worker` (see README). */
+/** E2E against a running stack: `npm run localnet` (Postgres), `npm run dev`, `npm run worker` (see README). */
 export default defineConfig({
   testDir: "./e2e",
   timeout: 120_000,

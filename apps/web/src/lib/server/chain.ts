@@ -8,11 +8,6 @@ export function connection() {
   conn ??= new Connection(env().SOLANA_RPC, { commitment: "confirmed" });
   return conn;
 }
-export function programId() {
-  const id = env().REGISTRY_PROGRAM_ID;
-  if (!id) throw unavailable("On-chain commitments are not configured (REGISTRY_PROGRAM_ID).");
-  return new PublicKey(id);
-}
 
 const mintCache = new Map<string, { decimals: number; programId: string; at: number }>();
 export async function neuronMint() {
@@ -32,6 +27,7 @@ export async function walletBalance(wallet: string) {
   return { ...b, mint: m.mint, decimals: m.decimals, cluster: env().SOLANA_CLUSTER };
 }
 
+/** Optional: only used when a $NEURON mint is configured. Nothing core depends on an RPC. */
 export async function rpcHealth() {
   const t0 = Date.now();
   try {

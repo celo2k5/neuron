@@ -6,7 +6,10 @@ import { challengeMessage, parseChallenge } from "@neuron/solana";
 import { generateModel, runExperiment, type ModelConfig } from "@neuron/engine";
 import { pool, tx, one, q } from "@/lib/server/db";
 import { issueChallenge, signIn, consumeChallenge } from "@/lib/server/auth";
-import { balance, purchase, reserve, settle, grant } from "@/lib/server/credits";
+import { balance, purchase, reserve, settle, grant, claimDaily } from "@/lib/server/credits";
+import { commit, verifyExperiment, verifyChain } from "@/lib/server/commitments";
+import { castVote, createProposal, tally } from "@/lib/server/governance";
+import { votePayloadHash } from "@/lib/server/governance";
 import { claim, complete, enqueue, fail, requeueStale } from "@/lib/server/jobs";
 import { createModel, loadVersion, listModels } from "@/lib/server/models";
 import { createExperiment, executeExperiment, getExperiment, recomputeHashes } from "@/lib/server/experiments";
@@ -68,6 +71,13 @@ describe("credit ledger", () => {
     await tx((db) => settle(db, s.userId, 6, 2, "training", "t2"));
     await tx((db) => settle(db, s.userId, 6, 2, "training", "t2")); // duplicate settle is a no-op
     expect(await balance(pool(), s.userId)).toEqual({ available: 8, reserved: 0, consumed: 2, refunded: 0 });
+  });
+  it("daily claims add credits once per wallet per UTC day", async () => {
+    const s = await session(kp());
+    const a = await tx((db) => claimDaily(db, s.userId, 10));
+    const b = await tx((db) => claimDaily(db, s.userId, 10));
+    expect([a.claimed, b.claimed]).toEqual([true, false]);
+    expect((await balance(pool(), s.userId)).available).toBe(10);
   });
   it("one on-chain signature can credit only one intent (unique constraint)", async () => {
     const s = await session(kp());
@@ -187,5 +197,55 @@ describe("community network", () => {
     const ids = rows.map((r) => BigInt(r.id));
     for (let i = 1; i < ids.length; i++) expect(ids[i] > ids[i - 1]).toBe(true);
     expect(ids.length).toBeGreaterThan(3);
+  });
+});
+
+describe("server registry", () => {
+  const done = async (s: Awaited<ReturnType<typeof session>>, input: number[]) => {
+    const { id: modelId } = await tx((db) => createModel(db, { ...cfg, seed: "reg" }, undefined, s.userId));
+    await tx((db) => grant(db, s.userId, 5, "test", `reg-${s.userId}-${input.join()}`));
+    const e = await tx((db) => createExperiment(db, { modelId, input, inputSource: "manual", ownerId: s.userId }));
+    await tx((db) => executeExperiment(db, e.id, e.cost));
+    return e.id;
+  };
+  it("records owner experiments as signed, chained entries and verifies them", async () => {
+    const a = await session(kp()), b = await session(kp());
+    const e1 = await done(a, [0.1, 0.2]), e2 = await done(a, [0.3, -0.4]);
+    expect((await verifyExperiment(e1)).state).toBe("not_committed");
+    await expect(commit(b, e1)).rejects.toThrow(/owner/);
+    const v1 = await commit(a, e1);
+    expect(v1.state).toBe("verified");
+    expect(v1.checks).toEqual({ hashesMatch: true, entryHashOk: true, signatureOk: true, chainLinkOk: true });
+    expect((await commit(a, e1)).record!.seq).toBe(v1.record!.seq); // idempotent
+    const v2 = await commit(a, e2);
+    expect(v2.record!.seq).toBe(v1.record!.seq + 1);
+    expect(v2.record!.prevHash).toBe(v1.record!.entryHash);
+    const chain = await verifyChain();
+    expect(chain.intact).toBe(true);
+    expect(chain.head).toBe(v2.record!.entryHash);
+  });
+  it("refuses edits to recorded entries and detects tampering with the experiment", async () => {
+    const a = await session(kp());
+    const id = await done(a, [0.5, 0.5]);
+    await commit(a, id);
+    await expect(q("update registry_entries set owner_wallet = 'x' where experiment_id = $1", [id])).rejects.toThrow(/append-only/);
+    await expect(q("delete from registry_entries where experiment_id = $1", [id])).rejects.toThrow(/append-only/);
+    await q("update experiments set output = $2 where id = $1", [id, JSON.stringify([0.123, 0.877])]);
+    expect((await verifyExperiment(id)).state).toBe("mismatch");
+  });
+});
+
+describe("governance without a token", () => {
+  it("counts one signed vote per wallet and refuses double votes", async () => {
+    const ka = kp(), kb = kp();
+    const a = await session(ka), b = await session(kb);
+    const p = await createProposal(a, { kind: "advisory", title: "Try a wider default", body: "test" });
+    for (const [k, s] of [[ka, a], [kb, b]] as const) {
+      const ch = await issueChallenge(s.wallet, "vote", votePayloadHash(p.id, "for"));
+      expect((await castVote(s, p.id, "for", { message: ch.message, signature: sign(k, ch.message) })).weight).toBe("1");
+    }
+    const again = await issueChallenge(a.wallet, "vote", votePayloadHash(p.id, "against"));
+    await expect(castVote(a, p.id, "against", { message: again.message, signature: sign(ka, again.message) })).rejects.toThrow(/already voted/);
+    expect(await tally(pool(), p.id)).toMatchObject({ for: "2", voters: 2 });
   });
 });
