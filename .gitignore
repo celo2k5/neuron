@@ -13,3 +13,4 @@ infra/.localnet
 brag-output/work/
 infra/.devnet
 programs/neuron_registry/target-devnet
+brag-output/
