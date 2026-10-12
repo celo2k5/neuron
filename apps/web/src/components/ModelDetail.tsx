@@ -12,7 +12,7 @@ import { seededInput } from "@/lib/client/specimens";
 import { GraphCanvas } from "./GraphCanvas";
 import { Specimen3D } from "./Specimen3D";
 import { NetworkFacts } from "./lab/Inspector";
-import { Empty, ErrorBox, Hash, Panel, Spinner, StatusPill, ago, fmt } from "./ui";
+import { Empty, ErrorBox, Hash, Panel, Spinner, StatusPill, ago, fmt, PageHeader } from "./ui";
 
 export function ModelDetail({ id }: { id: string }) {
   const d = useModelDetail(id);
@@ -49,26 +49,22 @@ export function ModelDetail({ id }: { id: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="label"><Link href="/networks">networks</Link> / {m.id}</div>
-          <h1 className="display mt-2 text-[40px]">{m.name}</h1>
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-[12.5px] text-muted">
-            <span>{m.architecture}</span><span className="tnum">{[m.config.inputDim, ...m.config.hidden, m.config.outputDim].join("·")}</span>
-            {m.trained ? <span className="pill text-good">trained versions</span> : <span className="pill text-faint">generated · untrained</span>}
-            {m.forked_from && <span>forked from <Link href={`/networks/${m.forked_from}`}>{m.forked_from}</Link></span>}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8">
+      <PageHeader title={m.name}
+        crumbs={<><Link href="/networks" className="no-underline hover:text-fg">Networks</Link><span aria-hidden>/</span><span className="mono">{m.id}</span></>}
+        meta={<>
+          <span className="capitalize">{m.architecture}</span><span aria-hidden>·</span><span className="tnum">{[m.config.inputDim, ...m.config.hidden, m.config.outputDim].join(" · ")}</span>
+          {m.trained ? <span className="pill text-good">Trained versions</span> : <span className="pill text-faint">Generated · untrained</span>}
+          {m.forked_from && <span>Forked from <Link href={`/networks/${m.forked_from}`}>{m.forked_from}</Link></span>}
+        </>}
+        actions={<>
+          <a href={`/api/models/${m.id}/versions/${v}`} target="_blank" rel="noreferrer" className="act-ghost no-underline">Export v{v} JSON</a>
           <Link href={`/lab?model=${m.id}&v=${v}`} className="act-primary no-underline">Open v{v} in lab</Link>
-          <a href={`/api/models/${m.id}/versions/${v}`} target="_blank" rel="noreferrer">Export v{v} JSON</a>
-        </div>
-      </div>
+        </>} />
       <ErrorBox error={err} />
-      <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="panel relative min-h-[500px] overflow-hidden">
-          {art.data && v3 ? <Specimen3D model={art.data} activations={acts} className="absolute inset-0" zoom framing={0.95} /> : art.data ? <GraphCanvas model={art.data} form={shownForm} palette={m.presentation.palette} activations={acts} className="absolute inset-0" /> : <div className="p-6"><Spinner label="verifying artifact" /></div>}
+          {art.data && v3 ? <Specimen3D model={art.data} activations={acts} className="absolute inset-0" zoom framing={0.74} /> : art.data ? <GraphCanvas model={art.data} form={shownForm} palette={m.presentation.palette} activations={acts} className="absolute inset-0" /> : <div className="p-6"><Spinner label="verifying artifact" /></div>}
           <div className="absolute bottom-3 left-3 z-10 flex flex-wrap items-center gap-1">
             <Segmented label="View" value={v3 ? "3D" : shownForm} onChange={(v) => { if (v === "3D") setV3(true); else { setV3(false); setForm(v as VisualForm); } }} className="glass-chip !bg-bg/60"
               options={[{ value: "3D", label: "3D" }, ...VISUAL_FORMS.map((f) => ({ value: f as string, label: f.toLowerCase() }))]} />

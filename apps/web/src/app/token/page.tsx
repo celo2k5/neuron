@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import { useConfig, useNeuronWallet, useSession } from "@/lib/client/wallet";
 import { explorerTx } from "@/components/ExperimentDetail";
-import { Empty, ErrorBox, NumberField, Panel, Scramble, Spinner, StatusPill, When, ago, count, short } from "@/components/ui";
+import { Empty, ErrorBox, NumberField, Panel, Spinner, StatusPill, When, ago, count, short, PageHeader } from "@/components/ui";
 
 interface Token { cluster: string; mint: string; decimals: number; tokenProgram: string; balance: { amount: string; uiAmount: string; ata: string } | null }
 interface Intent { id: string; credits: number; amount: string; status: string; signature: string | null; failure_reason: string | null; created_at: string; expires_at: string }
@@ -45,9 +45,8 @@ export default function TokenPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
-      <Scramble as="h1" text="One token." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
-      <p className="mt-2 max-w-[78ch] text-muted">Browsing and a daily allowance of experiments are free. $NEURON buys credits for persisted experiments beyond the free tier, training jobs and neuron registration. Holding tokens does not make any model more intelligent.</p>
+    <div className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8">
+      <PageHeader title="One token.">Browsing and a daily allowance of experiments are free. $NEURON buys credits for persisted experiments beyond the free tier, training jobs and neuron registration. Holding tokens does not make any model more intelligent.</PageHeader>
       {cfg?.blockers.length ? <div className="mt-4 border border-warn/60 p-3 text-warn"><div className="label !text-warn">integration not configured</div><ul className="mt-1">{cfg.blockers.map((b) => <li key={b}>— {b}</li>)}</ul></div> : null}
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Panel title="mint (read from chain)">

@@ -150,9 +150,10 @@ export class GraphRenderer {
     if (!this.L || !this.w) return;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (let i = 0; i < this.L.x.length; i++) { x0 = Math.min(x0, this.L.x[i]); x1 = Math.max(x1, this.L.x[i]); y0 = Math.min(y0, this.L.y[i]); y1 = Math.max(y1, this.L.y[i]); }
-    const pad = this.opts.padding + (this.opts.labels ? 14 : 0);
-    const s = Math.min((this.w - pad * 2) / Math.max(40, x1 - x0), (this.h - pad * 2) / Math.max(40, y1 - y0), 3);
-    this.view = { s, tx: this.w / 2 - ((x0 + x1) / 2) * s, ty: this.h / 2 - ((y0 + y1) / 2) * s };
+    const pad = Math.max(24, Math.min(this.opts.padding + 20, Math.min(this.w, this.h) * 0.09));
+    const padB = pad + (this.opts.labels ? 30 : 0);
+    const s = Math.min((this.w - pad * 2) / Math.max(40, x1 - x0), (this.h - pad - padB) / Math.max(40, y1 - y0), 4);
+    this.view = { s, tx: this.w / 2 - ((x0 + x1) / 2) * s, ty: (this.h - padB + pad) / 2 - ((y0 + y1) / 2) * s };
     this.userMoved = false;
     this.kick();
   }
@@ -234,8 +235,8 @@ export class GraphRenderer {
     return [p[6], p[7]];
   }
 
-  private trace2d(path: Path) {
-    const c = this.ctx, p = path.p;
+  private trace2d(path: Path, c: CanvasRenderingContext2D = this.ctx) {
+    const p = path.p;
     c.moveTo(p[0], p[1]);
     if (path.k === "line") c.lineTo(p[2], p[3]);
     else if (path.k === "quad") c.quadraticCurveTo(p[2], p[3], p[4], p[5]);
@@ -260,13 +261,96 @@ export class GraphRenderer {
   private colorNeg() { return this.paletteMode === "seed" && this.model ? paletteFromSeed(this.model.configHash).neg : this.colors.neg; }
   private colorGlow() { return this.paletteMode === "seed" && this.model ? paletteFromSeed(this.model.configHash).glow : this.colors.accent2; }
 
+  /** node radius in SCREEN pixels: legible at any zoom, smaller as networks get denser */
+  private nodeR(g: number) {
+    const n = this.G!.nodes.length;
+    const lo = n < 40 ? 5 : n < 120 ? 4 : n < 400 ? 2.8 : 2.1;
+    const hi = n < 40 ? 11 : n < 120 ? 9 : 6.5;
+    return clamp(this.L!.r[g] * this.view.s * 1.25, lo, hi) * (0.9 + 0.2 * Math.min(1, this.view.s));
+  }
+
+  private gridPattern: CanvasPattern | null = null;
+  private gridFor = "";
+  private grid() {
+    const key = `${this.colors.fg}|${this.dpr}`;
+    if (this.gridPattern && this.gridFor === key) return this.gridPattern;
+    const t = document.createElement("canvas"), S = Math.round(24 * this.dpr);
+    t.width = t.height = S;
+    const g = t.getContext("2d")!;
+    g.fillStyle = withAlpha(this.colors.fg, 0.07);
+    g.beginPath(); g.arc(S / 2, S / 2, 0.75 * this.dpr, 0, Math.PI * 2); g.fill();
+    this.gridPattern = this.ctx.createPattern(t, "repeat");
+    this.gridFor = key;
+    return this.gridPattern;
+  }
+
+  private edgeCache: HTMLCanvasElement | null = null;
+  private edgeKey = "";
+  private cacheCtx() {
+    if (!this.edgeCache) this.edgeCache = document.createElement("canvas");
+    if (this.edgeCache.width !== this.canvas.width || this.edgeCache.height !== this.canvas.height) { this.edgeCache.width = this.canvas.width; this.edgeCache.height = this.canvas.height; }
+    return this.edgeCache.getContext("2d")!;
+  }
+
+  private drawEdges(c: CanvasRenderingContext2D, s: number, vx0: number, vy0: number, vx1: number, vy1: number, budget: number, maxW: number, pos: string, neg: string, base: number, span: number, wBase: number, dim: number) {
+    const G = this.G!, lw = 1 / s;
+    const visible: number[] = [];
+    for (const ei of this.order) {
+      if (visible.length >= budget) break;
+      const e = G.edges[ei];
+      const ax = this.px[e.s], ay = this.py[e.s], bx = this.px[e.t], by = this.py[e.t];
+      if (Math.max(ax, bx) < vx0 || Math.min(ax, bx) > vx1 || Math.max(ay, by) < vy0 - 200 || Math.min(ay, by) > vy1 + 200) continue;
+      visible.push(ei);
+    }
+    if (visible.length <= 700) {
+      // per-edge: a gradient that fades into each end, width and alpha by |w|
+      for (let i = visible.length - 1; i >= 0; i--) {
+        const ei = visible[i], e = G.edges[ei], path = this.paths[ei];
+        const m = Math.min(1, Math.abs(e.w) / maxW);
+        const col = e.w >= 0 ? pos : neg;
+        const a = (base + span * m * m) * dim;
+        const p = path.p, ex = p[p.length - 2], ey = p[p.length - 1];
+        const gr = c.createLinearGradient(p[0], p[1], ex, ey);
+        gr.addColorStop(0, withAlpha(col, a * 0.35)); gr.addColorStop(0.5, withAlpha(col, a)); gr.addColorStop(1, withAlpha(col, a * 0.35));
+        c.beginPath(); this.trace2d(path, c);
+        c.strokeStyle = gr; c.lineWidth = lw * (wBase + m * 1.9); c.lineCap = "round";
+        if (e.w < 0 && this.colors.pos === this.colors.neg) c.setLineDash([3 * lw, 3 * lw]);
+        c.stroke(); c.setLineDash([]);
+      }
+    } else {
+      const buckets: number[][] = Array.from({ length: 8 }, () => []);
+      for (const ei of visible) { const e = G.edges[ei]; const mag = Math.min(0.999, Math.abs(e.w) / maxW); buckets[(e.w >= 0 ? 0 : 4) + Math.floor(mag * 4)].push(ei); }
+      for (let b = 0; b < 8; b++) {
+        if (!buckets[b].length) continue;
+        const m = (b % 4) / 3;
+        c.beginPath();
+        for (const ei of buckets[b]) this.trace2d(this.paths[ei], c);
+        c.strokeStyle = withAlpha(b < 4 ? pos : neg, (base + span * m * m) * dim);
+        c.lineWidth = lw * (wBase + m * 1.3);
+        if (b >= 4 && this.colors.pos === this.colors.neg) c.setLineDash([3 * lw, 3 * lw]);
+        c.stroke(); c.setLineDash([]);
+      }
+    }
+
+  }
+
   /** returns true while something is animating */
   private draw(now: number): boolean {
     const c = this.ctx, G = this.G, L = this.L;
-    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    c.clearRect(0, 0, this.w, this.h);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, this.canvas.width, this.canvas.height);
     if (!G || !L) return false;
     let animating = false;
+
+    // backdrop: a fine dot grid that pans with the graph
+    const pat = this.grid();
+    if (pat) {
+      c.save();
+      const ox = ((this.view.tx % 24) + 24) % 24, oy = ((this.view.ty % 24) + 24) % 24;
+      c.translate(ox * this.dpr, oy * this.dpr);
+      c.fillStyle = pat; c.fillRect(-ox * this.dpr, -oy * this.dpr, this.canvas.width, this.canvas.height);
+      c.restore();
+    }
 
     // morph between visual forms
     if (this.from) {
@@ -278,55 +362,55 @@ export class GraphRenderer {
 
     const { s, tx, ty } = this.view;
     c.setTransform(this.dpr * s, 0, 0, this.dpr * s, this.dpr * tx, this.dpr * ty);
-    const lw = 1 / s;
+    const lw = 1 / s; // one screen pixel in world units
     const tElapsed = this.trace ? now - this.traceAt : Infinity;
     const step = this.reducedMotion ? 1 : this.opts.stepMs;
     const traceDone = tElapsed > G.layerSize.length * step + 600;
-    if (this.trace && !traceDone) animating = true;
+    const tracing = !!this.trace && !traceDone;
+    if (tracing) animating = true;
 
-    // viewport culling bounds in world coords
     const vx0 = -tx / s - 40, vy0 = -ty / s - 40, vx1 = (this.w - tx) / s + 40, vy1 = (this.h - ty) / s + 40;
     const budget = s > 1.6 ? Infinity : this.opts.edgeBudget;
     const maxW = G.maxAbsW;
     const pos = this.colorPos(), neg = this.colorNeg();
+    const E = G.edges.length;
+    // sparse networks get confident edges; dense ones stay a fine mesh
+    const base = clamp(0.42 - E / 2600, 0.045, 0.34);
+    const span = clamp(0.55 - E / 3000, 0.16, 0.5);
+    const wBase = E < 300 ? 0.9 : E < 1200 ? 0.6 : 0.45;
+    const dim = tracing ? 0.55 : 1;
 
-    // edges: batched into sign × magnitude buckets
-    const buckets: number[][] = Array.from({ length: 8 }, () => []);
-    let drawn = 0;
-    for (const ei of this.order) {
-      if (drawn >= budget) break;
-      const e = G.edges[ei];
-      const ax = this.px[e.s], ay = this.py[e.s], bx = this.px[e.t], by = this.py[e.t];
-      if (Math.max(ax, bx) < vx0 || Math.min(ax, bx) > vx1 || Math.max(ay, by) < vy0 - 200 || Math.min(ay, by) > vy1 + 200) continue;
-      const mag = Math.min(0.999, Math.abs(e.w) / maxW);
-      buckets[(e.w >= 0 ? 0 : 4) + Math.floor(mag * 4)].push(ei);
-      drawn++;
+    // the edge layer only changes with the view, the model, the palette or the theme: cache it
+    const cacheable = !this.from && !tracing;
+    const key = `${s.toFixed(5)}|${tx.toFixed(2)}|${ty.toFixed(2)}|${this.model?.artifactHash}|${L.form}|${this.paletteMode}|${pos}|${neg}|${this.canvas.width}x${this.canvas.height}`;
+    if (cacheable && this.edgeCache && this.edgeKey === key) {
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.drawImage(this.edgeCache, 0, 0);
+      c.setTransform(this.dpr * s, 0, 0, this.dpr * s, this.dpr * tx, this.dpr * ty);
+    } else {
+    const target = cacheable ? this.cacheCtx() : c;
+    if (cacheable) { target.setTransform(1, 0, 0, 1, 0, 0); target.clearRect(0, 0, this.canvas.width, this.canvas.height); target.setTransform(this.dpr * s, 0, 0, this.dpr * s, this.dpr * tx, this.dpr * ty); }
+    this.drawEdges(target, s, vx0, vy0, vx1, vy1, budget, maxW, pos, neg, base, span, wBase, dim);
+    if (cacheable) {
+      this.edgeKey = key;
+      c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(this.edgeCache!, 0, 0);
+      c.setTransform(this.dpr * s, 0, 0, this.dpr * s, this.dpr * tx, this.dpr * ty);
     }
-    const dense = G.edges.length > 600;
-    for (let b = 0; b < 8; b++) {
-      if (!buckets[b].length) continue;
-      const m = (b % 4) / 3;
-      c.beginPath();
-      for (const ei of buckets[b]) this.trace2d(this.paths[ei]);
-      c.strokeStyle = withAlpha(b < 4 ? pos : neg, (dense ? 0.035 : 0.06) + m * m * (dense ? 0.2 : 0.38) * (this.trace && !traceDone ? 0.6 : 1));
-      c.lineWidth = lw * (0.45 + m * 1.1);
-      if (b >= 4 && this.colors.pos === this.colors.neg) c.setLineDash([3 * lw, 3 * lw]);
-      c.stroke();
-      c.setLineDash([]);
     }
 
-    // highlight edges of hovered / selected node or edge
+    // focus: edges of hovered / selected node or edge
     const focus = this.hover ?? this.selected;
     if (focus) {
       c.beginPath();
       if (focus.type === "node") { for (const e of G.edges) if (e.s === focus.g || e.t === focus.g) this.trace2d(this.paths[e.e]); }
       else this.trace2d(this.paths[focus.e]);
-      c.strokeStyle = withAlpha(this.colors.fg, 0.75);
-      c.lineWidth = lw * 1.4;
+      c.strokeStyle = withAlpha(this.colors.fg, 0.8);
+      c.lineWidth = lw * 1.6;
       c.stroke();
     }
 
     // activation pulses along real edges, strength ∝ |w · a_src|
+    const glow = this.colorGlow();
     if (this.trace && tElapsed < G.layerSize.length * step + 400) {
       const flows: { e: GraphEdge; f: number }[] = [];
       let fmax = 1e-12;
@@ -337,7 +421,7 @@ export class GraphRenderer {
       }
       flows.sort((x, y) => y.f - x.f);
       const lim = Math.min(flows.length, 900);
-      const glow = this.colorGlow();
+      c.globalCompositeOperation = "lighter";
       for (let i = 0; i < lim; i++) {
         const { e, f } = flows[i];
         const t0 = G.nodes[e.s].layer * step, t1 = G.nodes[e.t].layer * step;
@@ -345,76 +429,96 @@ export class GraphRenderer {
         if (u < 0 || u > 1) continue;
         const k = f / fmax;
         if (k < 0.04) continue;
-        // bright segment of the edge being traversed
         const [x, y] = this.pointAt(this.paths[e.e], u);
-        const [x2, y2] = this.pointAt(this.paths[e.e], Math.max(0, u - 0.12));
+        const [x2, y2] = this.pointAt(this.paths[e.e], Math.max(0, u - 0.18));
+        const tr = c.createLinearGradient(x2, y2, x, y);
+        tr.addColorStop(0, withAlpha(e.w >= 0 ? pos : neg, 0)); tr.addColorStop(1, withAlpha(glow, 0.35 + 0.6 * k));
         c.beginPath(); c.moveTo(x2, y2); c.lineTo(x, y);
-        c.strokeStyle = withAlpha(e.w >= 0 ? pos : neg, 0.25 + 0.7 * k);
-        c.lineWidth = lw * (0.8 + 2.4 * k);
+        c.strokeStyle = tr; c.lineWidth = lw * (1 + 2.6 * k); c.lineCap = "round";
         c.stroke();
-        c.beginPath(); c.arc(x, y, (1.2 + 2.6 * k) * lw * Math.sqrt(s), 0, Math.PI * 2);
-        c.fillStyle = withAlpha(glow, 0.5 + 0.5 * k);
-        c.fill();
+        const hr = (2 + 4 * k) * lw;
+        const hg = c.createRadialGradient(x, y, 0, x, y, hr * 2.4);
+        hg.addColorStop(0, withAlpha(glow, 0.9)); hg.addColorStop(1, withAlpha(glow, 0));
+        c.fillStyle = hg; c.beginPath(); c.arc(x, y, hr * 2.4, 0, Math.PI * 2); c.fill();
       }
+      c.globalCompositeOperation = "source-over";
     }
 
-    // nodes
+    // nodes, in screen space so they stay crisp and legible at every zoom
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const ambientT = now / 1000;
+    const light = isLight(this.colors.bg);
     for (const n of G.nodes) {
-      const x = this.px[n.g], y = this.py[n.g];
-      if (x < vx0 || x > vx1 || y < vy0 || y > vy1) continue;
-      let r = L.r[n.g];
+      const wx = this.px[n.g], wy = this.py[n.g];
+      if (wx < vx0 || wx > vx1 || wy < vy0 || wy > vy1) continue;
+      const x = wx * s + tx, y = wy * s + ty;
+      let r = this.nodeR(n.g);
       const isIn = n.layer === 0, isOut = n.layer === G.layerSize.length - 1;
       let act = 0, lit = false;
       if (this.trace) {
-        const at = n.layer * step;
-        lit = tElapsed >= at;
+        lit = tElapsed >= n.layer * step;
         if (lit) act = Math.min(1, Math.abs(this.trace[n.layer]?.[n.index] ?? 0) / this.layerMax[n.layer]);
       }
-      if (this.opts.ambient && !this.reducedMotion && L.form === "CONSTELLATION") { r *= 0.85 + 0.3 * (0.5 + 0.5 * Math.sin(ambientT * 1.3 + n.g * 1.7)); animating = true; }
-      const base = isIn ? this.colors.accent2 : isOut ? this.colors.accent : this.colors.node;
-      // soft halo: always present, swells with activation
-      const glowR = r * (2.4 + act * 3.2);
-      const halo = c.createRadialGradient(x, y, 0, x, y, glowR);
-      const hA = this.trace ? (lit ? 0.1 + 0.4 * act * (traceDone ? 0.6 : 1) : 0.04) : (isIn || isOut ? 0.16 : 0.09);
-      halo.addColorStop(0, withAlpha(lit && act > 0.02 ? this.colorGlow() : base, hA));
-      halo.addColorStop(1, withAlpha(base, 0));
-      c.fillStyle = halo;
-      c.beginPath(); c.arc(x, y, glowR, 0, Math.PI * 2); c.fill();
+      if (this.opts.ambient && !this.reducedMotion && L.form === "CONSTELLATION") { r *= 0.92 + 0.16 * (0.5 + 0.5 * Math.sin(ambientT * 1.3 + n.g * 1.7)); animating = true; }
+      // tint by depth: ice at the input, cobalt at the output, kept bright toward the node colour
+      const depthT = n.layer / Math.max(1, G.layerSize.length - 1);
+      const col = isIn ? this.colors.accent2 : isOut ? this.colors.accent : mix(mix(this.colors.accent2, this.colors.accent, depthT), this.colors.node, light ? 0.15 : 0.45);
+      const hot = lit && act > 0.02;
+      // halo
+      const hR = r * (2.6 + act * 3.4);
+      const hA = this.trace ? (lit ? 0.08 + 0.42 * act * (traceDone ? 0.6 : 1) : 0.03) : (isIn || isOut ? 0.2 : 0.1);
+      const halo = c.createRadialGradient(x, y, r * 0.4, x, y, hR);
+      halo.addColorStop(0, withAlpha(hot ? glow : col, hA * (light ? 0.7 : 1)));
+      halo.addColorStop(1, withAlpha(hot ? glow : col, 0));
+      c.fillStyle = halo; c.beginPath(); c.arc(x, y, hR, 0, Math.PI * 2); c.fill();
+      // body: lit core over a darker rim
+      const rr = r * (1 + act * 0.35);
+      const dimNode = this.trace && !lit ? 0.35 : 1;
       c.beginPath();
-      const rr = r * 0.62 * (1 + act * 0.45);
-      if (L.form === "CIRCUIT") c.rect(x - rr, y - rr, rr * 2, rr * 2); else c.arc(x, y, rr, 0, Math.PI * 2);
-      c.fillStyle = withAlpha(base, this.trace ? (lit ? 0.4 + 0.6 * act : 0.28) : 0.95);
-      c.fill();
-      if (isOut || isIn) { c.beginPath(); c.arc(x, y, r * 1.25, 0, Math.PI * 2); c.lineWidth = lw * 0.8; c.strokeStyle = withAlpha(base, 0.45); c.stroke(); }
+      if (L.form === "CIRCUIT") roundRect(c, x - rr, y - rr, rr * 2, rr * 2, rr * 0.35); else c.arc(x, y, rr, 0, Math.PI * 2);
+      const body = c.createRadialGradient(x - rr * 0.35, y - rr * 0.35, rr * 0.1, x, y, rr);
+      body.addColorStop(0, withAlpha(light ? col : mix(col, "#ffffff", 0.55), dimNode));
+      body.addColorStop(0.55, withAlpha(col, 0.95 * dimNode));
+      body.addColorStop(1, withAlpha(light ? mix(col, "#000000", 0.25) : mix(col, this.colors.bg, 0.45), 0.95 * dimNode));
+      c.fillStyle = body; c.fill();
+      c.lineWidth = 1; c.strokeStyle = withAlpha(light ? "#000000" : "#ffffff", light ? 0.12 : 0.18 * dimNode); c.stroke();
+      if (hot) { c.beginPath(); c.arc(x, y, rr * 0.42, 0, Math.PI * 2); c.fillStyle = withAlpha(light ? glow : "#ffffff", 0.55 + 0.45 * act); c.fill(); }
+      if (isOut || isIn) { c.beginPath(); c.arc(x, y, rr + 4, 0, Math.PI * 2); c.lineWidth = 1; c.strokeStyle = withAlpha(col, 0.5); c.stroke(); }
       const sel = (this.selected?.type === "node" && this.selected.g === n.g) || (this.hover?.type === "node" && this.hover.g === n.g);
-      if (sel) { c.beginPath(); c.arc(x, y, r + 5 * lw * Math.max(1, 1 / s), 0, Math.PI * 2); c.lineWidth = lw * 1.2; c.strokeStyle = this.colors.fg; c.stroke(); }
+      if (sel) { c.beginPath(); c.arc(x, y, rr + 7, 0, Math.PI * 2); c.lineWidth = 1.5; c.strokeStyle = this.colors.fg; c.stroke(); }
     }
 
-    // labels in screen space
-    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    if (this.opts.labels && this.model) {
-      c.font = `11px ${(getComputedStyle(document.documentElement).getPropertyValue("--font-geist-mono") || "ui-monospace") + ", ui-monospace, monospace"}`;
-      c.textAlign = "center";
-      c.fillStyle = this.colors.muted;
+    // layer labels: small pills under each column
+    if (this.opts.labels && this.model && L.form !== "FRACTAL") {
+      const mono = (getComputedStyle(document.documentElement).getPropertyValue("--font-geist-mono") || "ui-monospace") + ", ui-monospace, monospace";
+      c.font = `500 10.5px ${mono}`;
+      c.textAlign = "center"; c.textBaseline = "middle";
       const acts = [null, ...this.model.layers.map((l) => l.activation)];
       for (let l = 0; l < G.layerSize.length; l++) {
         let mx = 0, my = -Infinity; const n = G.layerSize[l];
         for (let i = 0; i < n; i++) { const g = G.layerStart[l] + i; mx += this.px[g]; my = Math.max(my, this.py[g]); }
-        const sx = (mx / n) * s + tx, sy = my * s + ty + 18;
-        if (sx < -50 || sx > this.w + 50 || L.form === "FRACTAL") continue;
-        c.fillText(`${l === 0 ? "input" : acts[l]} · ${n}`, sx, Math.min(this.h - 6, sy));
+        const sx = (mx / n) * s + tx, sy = Math.min(this.h - 16, my * s + ty + 26);
+        if (sx < -60 || sx > this.w + 60) continue;
+        const text = `${l === 0 ? "in" : l === G.layerSize.length - 1 ? "out" : "L" + l} · ${l === 0 ? "" : acts[l] + " · "}${n}`;
+        const tw = c.measureText(text).width + 14;
+        c.beginPath(); roundRect(c, sx - tw / 2, sy - 9, tw, 18, 9);
+        c.fillStyle = withAlpha(this.colors.bg, 0.82); c.fill();
+        c.lineWidth = 1; c.strokeStyle = withAlpha(this.colors.fg, 0.1); c.stroke();
+        c.fillStyle = this.colors.muted; c.fillText(text, sx, sy + 0.5);
       }
       if (this.trace && tElapsed >= (G.layerSize.length - 1) * step) {
         const lo = G.layerSize.length - 1;
         c.textAlign = "left";
-        c.fillStyle = this.colors.fg;
-        for (let i = 0; i < G.layerSize[lo]; i++) {
+        for (let i = 0; i < G.layerSize[lo] && G.layerSize[lo] <= 16; i++) {
           const g = G.layerStart[lo] + i, p = this.screenOf(g);
-          const v = this.trace[lo][i];
-          if (G.layerSize[lo] <= 16) c.fillText(v.toFixed(4), p.x + 10, p.y + 3);
+          const v = this.trace[lo][i], txt = v.toFixed(4), w = c.measureText(txt).width + 12;
+          c.beginPath(); roundRect(c, p.x + 14, p.y - 9, w, 18, 5);
+          c.fillStyle = withAlpha(this.colors.bg, 0.85); c.fill();
+          c.strokeStyle = withAlpha(this.colors.accent, 0.45); c.stroke();
+          c.fillStyle = this.colors.fg; c.fillText(txt, p.x + 20, p.y + 0.5);
         }
       }
+      c.textBaseline = "alphabetic";
     }
     return animating;
   }
@@ -427,7 +531,7 @@ export class GraphRenderer {
     let best = -1, bd = Infinity;
     for (const n of this.G.nodes) {
       const d = Math.hypot(this.px[n.g] - wx, this.py[n.g] - wy) * s;
-      if (d < Math.max(10, this.L.r[n.g] * s + 4) && d < bd) { bd = d; best = n.g; }
+      if (d < Math.max(10, this.nodeR(n.g) + 4) && d < bd) { bd = d; best = n.g; }
     }
     if (best >= 0) return { type: "node", g: best };
     let be = -1; bd = 6;
@@ -502,6 +606,20 @@ export class GraphRenderer {
     });
   }
 }
+
+function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  const k = Math.min(r, w / 2, h / 2);
+  c.moveTo(x + k, y); c.arcTo(x + w, y, x + w, y + h, k); c.arcTo(x + w, y + h, x, y + h, k); c.arcTo(x, y + h, x, y, k); c.arcTo(x, y, x + w, y, k); c.closePath();
+}
+function rgbOf(color: string): [number, number, number] {
+  const m = withAlpha(color, 1).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  return m ? [+m[1], +m[2], +m[3]] : [128, 128, 128];
+}
+function mix(a: string, b: string, t: number) {
+  const A = rgbOf(a), B = rgbOf(b);
+  return `rgb(${Math.round(A[0] + (B[0] - A[0]) * t)},${Math.round(A[1] + (B[1] - A[1]) * t)},${Math.round(A[2] + (B[2] - A[2]) * t)})`;
+}
+function isLight(bg: string) { const [r, g, b] = rgbOf(bg); return 0.2126 * r + 0.7152 * g + 0.0722 * b > 140; }
 
 function segDist(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
   const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy;

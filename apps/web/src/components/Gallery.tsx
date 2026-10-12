@@ -12,7 +12,7 @@ import { GraphCanvas } from "./GraphCanvas";
 import { LiftCard } from "./motion";
 import { AnimatePresence, motion } from "motion/react";
 import { spring, exit } from "@/lib/client/motion";
-import { Empty, ErrorBox, Hash, Reveal, Scramble, Skeleton, ago, count, fmt, short } from "./ui";
+import { Empty, ErrorBox, Hash, Reveal, Skeleton, ago, count, fmt, short, PageHeader } from "./ui";
 
 export function Gallery() {
   const sp = useSearchParams();
@@ -41,11 +41,10 @@ export function Gallery() {
   const toggle = (m: ModelRow) => setCompare((c) => (c.find((x) => x.id === m.id) ? c.filter((x) => x.id !== m.id) : [...c, m].slice(-2)));
 
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <Scramble as="h1" text="The public gallery." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
-        <Link href="/generator" className="act-primary no-underline">generate a model</Link>
-      </div>
+    <div className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8">
+      <PageHeader title="The public gallery." actions={<Link href="/generator" className="act-primary no-underline">Generate a model</Link>}>
+        Every saved network, drawn live from its own artifact. Hover a card to run it once; tick two to compare them side by side.
+      </PageHeader>
       <div className="panel sticky z-20 mt-8 flex flex-wrap items-end gap-3 !bg-bg/80 p-3 backdrop-blur-xl" style={{ top: "calc(env(safe-area-inset-top, 0px) + 76px)" }} role="search">
         <label className="flex min-w-[200px] flex-1 flex-col gap-1"><span className="label !text-[11px]">search name, seed or id</span><input className="field" type="search" name="q" autoComplete="off" spellCheck={false} value={q} onChange={(e) => setQ(e.target.value)} placeholder="specimen, genesis-010…" /></label>
         <label className="flex flex-col gap-1"><span className="label !text-[11px]">architecture</span>

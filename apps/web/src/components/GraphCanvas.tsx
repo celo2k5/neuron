@@ -74,9 +74,9 @@ export const GraphCanvas = forwardRef<GraphHandle, Props>(function GraphCanvas(
     <div ref={holder} className={`${/\babsolute\b/.test(className) ? "" : "relative "}overflow-hidden ${className}`}>
       {interactive && <p className="sr-only" aria-live="polite">{said}</p>}
       {toolbar && interactive && (
-        <div className="absolute right-2 top-2 z-10 flex gap-1">
+        <div className="glass-chip absolute right-3 top-3 z-10 flex gap-0.5 p-1">
           {[["+", () => r.current?.zoom(1.25), "Zoom in"], ["−", () => r.current?.zoom(0.8), "Zoom out"], ["Fit", () => r.current?.fit(), "Fit to view"]].map(([t, f, l]) => (
-            <button key={t as string} aria-label={l as string} onClick={f as () => void} className="act-ghost">{t as string}</button>
+            <button key={t as string} aria-label={l as string} title={l as string} onClick={f as () => void} className="act !m-0 h-[26px] min-w-[26px] text-center !px-2 text-[13px] leading-[18px]">{t as string}</button>
           ))}
         </div>
       )}

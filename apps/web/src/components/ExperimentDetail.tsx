@@ -8,7 +8,7 @@ import { api } from "@/lib/client/api";
 import { useExperiment, useModelArtifact, useModelDetail } from "@/lib/client/hooks";
 import { useConfig, useNeuronWallet, useSession } from "@/lib/client/wallet";
 import { GraphCanvas } from "./GraphCanvas";
-import { ErrorBox, Hash, Panel, Spinner, StatusPill, VectorBars, fmt, short, When } from "./ui";
+import { ErrorBox, Hash, Panel, Spinner, StatusPill, VectorBars, fmt, short, When, PageHeader } from "./ui";
 
 interface Verify {
   state: string; localHashesMatch?: boolean; note: string; hashes?: { resultHash: string; metadataHash: string; artifactHash: string };
@@ -56,20 +56,30 @@ export function ExperimentDetail({ id }: { id: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
-      <div className="label"><Link href="/experiments">experiments</Link> / {id.slice(0, 8)}</div>
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="display text-[40px] tnum">EXP·{id.slice(0, 8).toUpperCase()}</h1>
-        <div className="flex items-center gap-3"><StatusPill status={e.status} />{e.status === "completed" && <button className="act-ghost" disabled={!!busy} onClick={reproduce} data-testid="reproduce">{busy === "repro" ? "queuing…" : "reproduce"}</button>}</div>
-      </div>
+    <div className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8">
+      <PageHeader title={`EXP·${id.slice(0, 8).toUpperCase()}`} mono
+        crumbs={<><Link href="/experiments" className="no-underline hover:text-fg">Experiments</Link><span aria-hidden>/</span><span className="mono">{id.slice(0, 8)}</span></>}
+        actions={<><StatusPill status={e.status} />{e.status === "completed" && <button className="act-ghost" disabled={!!busy} onClick={reproduce} data-testid="reproduce">{busy === "repro" ? "Queuing…" : "Reproduce"}</button>}</>} />
       <ErrorBox error={err} />
-      <ol className="mt-4 flex flex-wrap gap-0 border border-line text-[12px]" aria-label="Pipeline">
-        {["select version", "validate input", "execute", "record activations", "compute output", "persist", "render"].map((s, i) => {
-          const done = e.status === "completed" || (e.status === "running" && i < 2) || (e.status === "failed" && i < 2);
-          return <li key={s} className={`flex-1 border-r border-line px-2 py-1.5 last:border-r-0 ${done ? "text-fg" : "text-faint"} ${e.status === "failed" && i === 2 ? "text-bad" : ""}`}><span className="tnum text-faint">{i + 1}</span> {s}<span className="sr-only">{e.status === "failed" && i === 2 ? ", failed" : done ? ", done" : ", pending"}</span></li>;
+      {/* pipeline: a stepper, state shown by mark as well as colour */}
+      <ol className="flex flex-wrap items-center gap-x-1 gap-y-2" aria-label="Pipeline">
+        {["Select version", "Validate input", "Execute", "Record activations", "Compute output", "Persist", "Render"].map((s, i, all) => {
+          const failed = e.status === "failed" && i === 2;
+          const done = !failed && (e.status === "completed" || ((e.status === "running" || e.status === "failed") && i < 2));
+          return (
+            <li key={s} className="flex items-center gap-1">
+              <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12.5px] ${failed ? "border-bad/40 text-bad" : done ? "border-fg/[0.12] bg-fg/[0.04] text-fg" : "border-line text-faint"}`}>
+                <span aria-hidden className={`grid h-4 w-4 place-items-center rounded-full text-[10px] ${failed ? "bg-bad/20" : done ? "bg-good/20 text-good" : "bg-fg/[0.06]"}`}>
+                  {failed ? "!" : done ? <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 5.2 4.2 7.3 8 2.8" /></svg> : i + 1}
+                </span>
+                {s}<span className="sr-only">{failed ? ", failed" : done ? ", done" : ", pending"}</span>
+              </span>
+              {i < all.length - 1 && <span aria-hidden className={`h-px w-4 ${done ? "bg-fg/25" : "bg-line"}`} />}
+            </li>
+          );
         })}
       </ol>
-      <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="panel relative min-h-[440px] overflow-hidden">
           {art.data ? <GraphCanvas model={art.data} form={(model.data?.model.presentation.form as VisualForm) ?? "MINIMAL"} activations={acts} className="absolute inset-0" /> : <div className="p-6"><Spinner label="loading pinned artifact" /></div>}
           {!acts && e.status === "completed" && <p className="absolute bottom-2 left-3 text-[11.5px] text-faint">Layers wider than 64 store summaries only; the animation is disabled for this run.</p>}

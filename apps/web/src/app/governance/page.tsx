@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ACTIVATIONS } from "@neuron/engine";
 import { api } from "@/lib/client/api";
 import { useConfig, useSession, useSignedAction } from "@/lib/client/wallet";
-import { Empty, ErrorBox, NumberField, Panel, Scramble, StatusPill, ago, count, short } from "@/components/ui";
+import { Empty, ErrorBox, NumberField, Panel, StatusPill, ago, count, short, PageHeader } from "@/components/ui";
 
 interface Proposal { id: string; kind: string; title: string; body: string; change: Record<string, unknown> | null; status: string; quorum: string; approval_bps: number; starts_at: string; ends_at: string; execute_after: string | null; author_wallet: string; tally: { for: string; against: string; abstain: string; total: string; voters: number } }
 interface Gov { rules: { proposalThresholdBase: string; quorumBase: string; approvalBps: number; votingPeriodSec: number; executionDelaySec: number; snapshotRule: string }; items: Proposal[] }
@@ -14,9 +14,8 @@ export default function GovernancePage() {
   const { data: cfg } = useConfig();
   const r = q.data?.rules;
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
-      <Scramble as="h1" text="Rules before votes." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
-      <p className="mt-2 max-w-[78ch] text-muted">Token holders can make advisory proposals or bounded policy changes to the community network. No vote can move treasury funds, and no off-chain vote executes anything outside the whitelisted network parameters.</p>
+    <div className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8">
+      <PageHeader title="Rules before votes.">Token holders can make advisory proposals or bounded policy changes to the community network. No vote can move treasury funds, and no off-chain vote executes anything outside the whitelisted network parameters.</PageHeader>
       {!cfg?.mint && <div className="mt-4 border border-warn/60 p-3 text-warn">Governance needs a configured $NEURON mint to read voting weight. It is disabled here.</div>}
       <div className="mt-6 grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">

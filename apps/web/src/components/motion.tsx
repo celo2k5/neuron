@@ -56,13 +56,13 @@ export function Segmented<T extends string>({ options, value, onChange, label, s
   const id = useId();
   return (
     <LayoutGroup id={id}>
-      <div role="group" aria-label={label} className={`inline-flex flex-wrap items-center gap-0.5 rounded-full border border-line bg-surface/60 p-1 ${className}`}>
+      <div role="group" aria-label={label} className={`inline-flex flex-wrap items-center gap-0.5 rounded-[11px] border border-fg/[0.08] bg-bg/50 p-[3px] shadow-[inset_0_1px_2px_rgba(0,0,0,.25)] ${className}`}>
         {options.map((o) => {
           const on = o.value === value;
           return (
             <button key={o.value} type="button" aria-pressed={on} data-testid={o.testId} onClick={() => onChange(o.value)}
-              className={`relative rounded-full ${size === "sm" ? "px-3 py-1 text-[12.5px]" : "px-3.5 py-1.5 text-[13px]"} transition-colors duration-300 first-letter:uppercase ${on ? "text-fg" : "text-muted hover:text-fg"}`}>
-              {on && <motion.span layoutId="seg-pill" transition={SPRING} className="absolute inset-0 rounded-full border border-accent/50 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--accent)_26%,var(--surface)),color-mix(in_srgb,var(--accent)_12%,var(--surface)))] shadow-[0_6px_20px_-10px_var(--glow)]" />}
+              className={`relative rounded-[8px] font-medium ${size === "sm" ? "h-[26px] px-2.5 text-[12.5px]" : "h-[30px] px-3 text-[13px]"} transition-colors duration-200 first-letter:uppercase ${on ? "text-fg" : "text-muted hover:text-fg"}`}>
+              {on && <motion.span layoutId="seg-pill" transition={SPRING} className="absolute inset-0 rounded-[8px] border border-fg/[0.12] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--fg)_13%,var(--surface)),color-mix(in_srgb,var(--fg)_8%,var(--surface)))] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--fg)_10%,transparent),0_1px_3px_rgba(0,0,0,.35)]" />}
               <span className="relative z-10 inline-block first-letter:uppercase">{o.label}</span>
             </button>
           );

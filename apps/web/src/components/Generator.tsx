@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { configIssues, exportModel, forward, generateModel, randomConfig, connectionCount, parameterCount, VISUAL_FORMS, type Model, type VisualForm } from "@neuron/engine";
 import { GraphCanvas } from "./GraphCanvas";
 import { ConfigForm, defaultDraft, resolveDraft, type Draft } from "./lab/ConfigForm";
-import { ErrorBox, Hash, Panel, Scramble } from "./ui";
+import { ErrorBox, Hash, Panel, PageHeader } from "./ui";
 import { api } from "@/lib/client/api";
 import { seededInput } from "@/lib/client/specimens";
 
@@ -85,20 +85,17 @@ export function Generator() {
 
   return (
     <div className="mx-auto max-w-[1600px] px-5 sm:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-6 pb-8 pt-14">
-        <div>
-          <Scramble as="h1" text="Seed in. Structure out." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
-          <p className="mt-2 max-w-[70ch] text-muted">The same seed, configuration and engine version always reproduce the same topology, weights and hash. Change any input and you get a different model, not a recoloured one.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+      <PageHeader title="Seed in. Structure out." actions={<>
           <button className="act" onClick={() => setDraft(draftFromSeed(Math.random().toString(36).slice(2, 10), draft.form))}>Surprise me</button>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])} />
           <button className="act" onClick={() => fileRef.current?.click()}>Import JSON</button>
           <button className="act" disabled={!model} onClick={exportJson}>Export JSON</button>
+          <span className="mx-1 h-5 w-px bg-line" aria-hidden />
           <button className="act-ghost" disabled={!model || !!busy} aria-busy={!!busy} onClick={() => save(false)}>{busy ? "Saving…" : "Save"}</button>
           <button className="act-primary" disabled={!model || !!busy} aria-busy={!!busy} onClick={() => save(true)} data-testid="save-and-open">{busy ? "Saving…" : "Save & open in lab"}</button>
-        </div>
-      </div>
+        </>}>
+        The same seed, configuration and engine version always reproduce the same topology, weights and hash. Change any input and you get a different model, not a recoloured one.
+      </PageHeader>
       <ErrorBox error={err} />
       <div className="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)_300px]">
         <div className="panel p-5"><ConfigForm draft={draft} onChange={setDraft} /></div>

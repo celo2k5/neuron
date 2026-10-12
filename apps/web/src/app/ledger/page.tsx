@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import { useConfig } from "@/lib/client/wallet";
 import { explorerTx } from "@/components/ExperimentDetail";
-import { Empty, ErrorBox, Hash, Panel, Scramble, Spinner, StatusPill, ago, short } from "@/components/ui";
+import { Empty, ErrorBox, Hash, Panel, Spinner, StatusPill, ago, short, PageHeader } from "@/components/ui";
 
 interface Ledger {
   items: { experiment_id: string; owner_wallet: string; pda: string; signature: string | null; slot: string | null; status: string; cluster: string; model_id: string; result_hash: string; created_at: string }[];
@@ -19,9 +19,8 @@ export default function LedgerPage() {
   const [id, setId] = useState("");
   const v = useQuery({ queryKey: ["verify-tool", id], enabled: /^[0-9a-f-]{36}$/i.test(id), queryFn: () => api<{ state: string; note: string; localHashesMatch?: boolean; chain?: { slot: string } | null }>(`/api/commitments/${id}`) });
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
-      <Scramble as="h1" text="What was recorded, and where." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
-      <p className="mt-2 max-w-[78ch] text-muted">Commitments are read back from the NEURON registry program ({cfg?.programId ? short(cfg.programId, 6) : "not configured"}) on {cfg?.cluster}. Transaction links appear only for signatures that exist on chain. Verification compares hashes; it is not a proof that the computation was correct.</p>
+    <div className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8">
+      <PageHeader title="What was recorded, and where.">Commitments are read back from the NEURON registry program ({cfg?.programId ? short(cfg.programId, 6) : "not configured"}) on {cfg?.cluster}. Transaction links appear only for signatures that exist on chain. Verification compares hashes; it is not a proof that the computation was correct.</PageHeader>
       {q.error && <ErrorBox error={q.error} />}
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Panel title="experiment commitments" meta={q.data ? `${q.data.items.length} shown` : ""}>

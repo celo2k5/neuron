@@ -7,7 +7,7 @@ import { api } from "@/lib/client/api";
 import { useConfig, useSession, useSignedAction } from "@/lib/client/wallet";
 import { seededInput } from "@/lib/client/specimens";
 import { Specimen3D } from "./Specimen3D";
-import { Empty, ErrorBox, Hash, Panel, Scramble, Spinner, StatusPill, VectorBars, ago, fmt, short } from "./ui";
+import { Empty, ErrorBox, Hash, Panel, Spinner, StatusPill, VectorBars, ago, fmt, short, PageHeader } from "./ui";
 
 interface State {
   name: string; policy: CommunityPolicy; current: number; neurons: CommunityNeuron[];
@@ -28,15 +28,14 @@ export function Community() {
   const s = q.data;
 
   return (
-    <div className="mx-auto max-w-[1440px] px-5 pt-14 sm:px-8">
-      <Scramble as="h1" text="One network, many owners." className="display mt-2 block text-[clamp(44px,5.2vw,76px)]" />
-      <p className="mt-2 max-w-[78ch] text-muted">Wallets register neurons into one shared feed-forward network. Each neuron owns its incoming weights (derived from its seed) and its bias, so nobody can change anyone else&apos;s parameters. Every approved change creates a new immutable version; experiments stay pinned to the version they ran on. More neurons make a bigger network, not a smarter one: growth here is not measured performance.</p>
+    <div className="mx-auto max-w-[1440px] px-5 pb-10 sm:px-8">
+      <PageHeader title="One network, many owners.">Wallets register neurons into one shared feed-forward network. Each neuron owns its incoming weights (derived from its seed) and its bias, so nobody can change anyone else&apos;s parameters. Every approved change creates a new immutable version; experiments stay pinned to the version they ran on. More neurons make a bigger network, not a smarter one: growth here is not measured performance.</PageHeader>
       {q.error && <ErrorBox error={q.error} />}
       {!s ? <div className="mt-6"><Spinner label="compiling network" /></div> : (
         <>
           <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="panel relative min-h-[480px] overflow-hidden">
-              {compiled && <Specimen3D model={compiled.model} activations={acts} className="absolute inset-0" framing={0.7} ariaLabel="Three-dimensional view of the community network" />}
+              {compiled && <Specimen3D model={compiled.model} activations={acts} className="absolute inset-0" framing={0.62} ariaLabel="Three-dimensional view of the community network" />}
               <div className="glass-chip absolute bottom-4 left-4 z-10 flex items-center gap-2 p-2">
                 <input aria-label="Input seed" name="input-seed" autoComplete="off" spellCheck={false} className="field !w-[140px] tnum" value={seed} onChange={(e) => setSeed(e.target.value)} />
                 <button className="act-ghost" onClick={run} data-testid="community-run">Run v{s.version.version}</button>

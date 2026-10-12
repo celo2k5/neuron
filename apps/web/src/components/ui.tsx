@@ -24,8 +24,8 @@ export function When({ iso }: { iso?: string | null }) {
 export function Panel({ title, meta, children, className = "", id }: { title: ReactNode; meta?: ReactNode; children: ReactNode; className?: string; id?: string }) {
   return (
     <section className={`panel min-w-0 ${className}`} id={id}>
-      <div className="panel-h"><h2 className="label">{title}</h2>{meta && <div className="text-[12px] text-muted">{meta}</div>}</div>
-      <div className="p-[18px] pt-3.5">{children}</div>
+      <div className="panel-h"><h2 className="label">{title}</h2>{meta && <div className="flex items-center gap-2 text-[12px] text-muted">{meta}</div>}</div>
+      <div className="p-[18px]">{children}</div>
     </section>
   );
 }
@@ -36,7 +36,7 @@ export function Hash({ value, n = 8, label }: { value?: string | null; n?: numbe
   if (!value) return <span className="text-faint">—</span>;
   return (
     <>
-      <button type="button" className="tnum text-left hover:text-accent-2" title={value} aria-label={`Copy ${label ?? "hash"} ${value}`}
+      <button type="button" className="mono text-left hover:text-accent-2" title={value} aria-label={`Copy ${label ?? "hash"} ${value}`}
         onClick={() => navigator.clipboard?.writeText(value).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1200); }).catch(() => {})}>
         {copied ? "Copied" : short(value, n)}
       </button>
@@ -150,5 +150,20 @@ export function ReseedIcon() {
     <svg aria-hidden width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
       <path d="M13.5 6.5A5.5 5.5 0 0 0 3.2 4.6M2.5 9.5a5.5 5.5 0 0 0 10.3 1.9" /><path d="M3 2v2.8h2.8M13 14v-2.8h-2.8" />
     </svg>
+  );
+}
+
+/** One header for every app page: title, a short description, actions on the right, a rule beneath. */
+export function PageHeader({ title, children, actions, testId, crumbs, meta, mono }: { title: string; children?: ReactNode; actions?: ReactNode; testId?: string; crumbs?: ReactNode; meta?: ReactNode; mono?: boolean }) {
+  return (
+    <header className="page-head" data-testid={testId}>
+      <div className="min-w-0">
+        {crumbs && <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-[12.5px] text-muted">{crumbs}</nav>}
+        <h1 className={`page-title rise ${mono ? "tnum" : ""}`}>{title}</h1>
+        {meta && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-muted">{meta}</div>}
+        {children && <p className="page-desc">{children}</p>}
+      </div>
+      {actions && <div className="page-actions">{actions}</div>}
+    </header>
   );
 }

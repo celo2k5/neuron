@@ -101,6 +101,8 @@ export class Scene3D {
   private pointer = new THREE.Vector2();
   private intro = 0;
   private radius = 10;
+  private sizeK = 1;
+  private bloomK = 1;
   private light = false;
 
   constructor(private host: HTMLElement, colors: ThemeColors, opts: Scene3DOptions = {}) {
@@ -197,7 +199,7 @@ export class Scene3D {
     const light = bg.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
     this.light = light;
     // additive light on a light ground washes out; dial bloom down for SOLAR
-    this.bloom.strength = (light ? 0.2 : 0.8) * this.opts.bloom;
+    this.bloom.strength = (light ? 0.2 : 0.8) * this.opts.bloom * this.bloomK;
     const dc = col(this.colors.muted, "#7f91af").multiplyScalar(light ? 0.6 : 0.45);
     const t = this.dust.geometry.getAttribute("tint") as THREE.BufferAttribute;
     for (let i = 0; i < t.count; i++) t.setXYZ(i, dc.r, dc.g, dc.b);
@@ -257,6 +259,11 @@ export class Scene3D {
       this.rings.add(ring);
     }
     this.radius = Math.max(((L - 1) * gap) / 2 + 1.2, maxR + 1);
+    // the camera frames small specimens from closer, and point size grows with closeness:
+    // scale sprites (and bloom) with the specimen so a 20-neuron net reads as crisp points, not blobs
+    this.sizeK = Math.min(1.1, Math.max(0.42, this.radius / 8.5));
+    this.bloomK = Math.min(1, Math.max(0.4, n / 60));
+    this.bloom.strength = (this.light ? 0.2 : 0.8) * this.opts.bloom * this.bloomK;
     const ng = new THREE.BufferGeometry();
     ng.setAttribute("position", new THREE.BufferAttribute(this.pos, 3));
     ng.setAttribute("tint", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
@@ -300,12 +307,12 @@ export class Scene3D {
     for (const nd of G.nodes) {
       const c = nd.layer === 0 ? ice : nd.layer === last ? acc : node;
       tint.setXYZ(nd.g, c.r, c.g, c.b);
-      size.setX(nd.g, (nd.layer === 0 || nd.layer === last ? 1.15 : 0.8) + Math.min(0.6, Math.sqrt(nd.degIn + nd.degOut) * 0.06));
+      size.setX(nd.g, ((nd.layer === 0 || nd.layer === last ? 1.15 : 0.8) + Math.min(0.6, Math.sqrt(nd.degIn + nd.degOut) * 0.06)) * this.sizeK);
     }
     tint.needsUpdate = true; size.needsUpdate = true;
     const ec = this.edges.geometry.getAttribute("color") as THREE.BufferAttribute;
     this.edgeBase = new Float32Array(ec.count * 3);
-    const dense = G.edges.length > 700 ? 0.42 : 0.85;
+    const dense = G.edges.length > 700 ? 0.42 : G.edges.length > 200 ? 0.85 : 1.5;
     const bg = col(this.colors.bg, "#080b12");
     G.edges.forEach((e, k) => {
       const m = Math.min(1, Math.abs(e.w) / G.maxAbsW);
