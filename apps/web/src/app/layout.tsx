@@ -11,9 +11,14 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "sw
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
 const newsreader = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-newsreader", display: "swap" });
 
+const DESCRIPTION = "A laboratory for neural computation you can see and check: generate neural models from seeds, run real inference, watch activations propagate, train, and record reproducible experiments.";
 export const metadata: Metadata = {
-  title: { default: "NEURON — One Token. Infinite Connections.", template: "%s · NEURON" },
-  description: "A Solana-powered laboratory: generate neural models, run real computations, watch activations propagate, and commit reproducible experiment hashes on-chain.",
+  metadataBase: new URL(process.env.APP_URL ?? "https://neuronai.online"),
+  title: { default: "Neuron — Intelligence is a network.", template: "%s · Neuron" },
+  description: DESCRIPTION,
+  applicationName: "Neuron",
+  openGraph: { type: "website", siteName: "Neuron", title: "Neuron — Intelligence is a network.", description: DESCRIPTION, url: "/" },
+  twitter: { card: "summary_large_image", title: "Neuron — Intelligence is a network.", description: DESCRIPTION },
 };
 export const viewport: Viewport = { themeColor: "#080B12", width: "device-width", initialScale: 1, viewportFit: "cover" };
 
