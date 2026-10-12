@@ -132,8 +132,8 @@ export function Lab() {
           )}
         </div>
 
-        {/* CENTER — the instrument */}
-        <div className="flex min-w-0 flex-col gap-5">
+        {/* CENTER — the instrument (first on phones) */}
+        <div className="order-first flex min-w-0 flex-col gap-5 lg:order-none">
           <div className="panel relative overflow-hidden">
             <div className="relative h-[62vh] min-h-[480px] lg:h-[calc(100vh-250px)] lg:max-h-[860px]">
               {model && view3d ? <Specimen3D ref={g3} model={model} activations={last?.activations} className="absolute inset-0" autoRotate zoom framing={1.05} bloom={0.9} /> : model ? <GraphCanvas ref={graph} model={model} form={form} palette={palette} activations={last?.activations} onSelect={setHit} className="absolute inset-0" /> :

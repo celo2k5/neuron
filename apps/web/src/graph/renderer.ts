@@ -494,6 +494,7 @@ export class GraphRenderer {
       c.font = `500 10.5px ${mono}`;
       c.textAlign = "center"; c.textBaseline = "middle";
       const acts = [null, ...this.model.layers.map((l) => l.activation)];
+      let lastRight = -Infinity, lastRow = 0;
       for (let l = 0; l < G.layerSize.length; l++) {
         let mx = 0, my = -Infinity; const n = G.layerSize[l];
         for (let i = 0; i < n; i++) { const g = G.layerStart[l] + i; mx += this.px[g]; my = Math.max(my, this.py[g]); }
@@ -501,10 +502,14 @@ export class GraphRenderer {
         if (sx < -60 || sx > this.w + 60) continue;
         const text = `${l === 0 ? "in" : l === G.layerSize.length - 1 ? "out" : "L" + l} · ${l === 0 ? "" : acts[l] + " · "}${n}`;
         const tw = c.measureText(text).width + 14;
-        c.beginPath(); roundRect(c, sx - tw / 2, sy - 9, tw, 18, 9);
+        // stagger pills that would collide with their left neighbour
+        const row = sx - tw / 2 < lastRight + 6 && lastRow === 0 ? 1 : 0;
+        const py = Math.min(this.h - 12, sy + row * 22);
+        lastRight = sx + tw / 2; lastRow = row;
+        c.beginPath(); roundRect(c, sx - tw / 2, py - 9, tw, 18, 9);
         c.fillStyle = withAlpha(this.colors.bg, 0.82); c.fill();
         c.lineWidth = 1; c.strokeStyle = withAlpha(this.colors.fg, 0.1); c.stroke();
-        c.fillStyle = this.colors.muted; c.fillText(text, sx, sy + 0.5);
+        c.fillStyle = this.colors.muted; c.fillText(text, sx, py + 0.5);
       }
       if (this.trace && tElapsed >= (G.layerSize.length - 1) * step) {
         const lo = G.layerSize.length - 1;
@@ -512,10 +517,11 @@ export class GraphRenderer {
         for (let i = 0; i < G.layerSize[lo] && G.layerSize[lo] <= 16; i++) {
           const g = G.layerStart[lo] + i, p = this.screenOf(g);
           const v = this.trace[lo][i], txt = v.toFixed(4), w = c.measureText(txt).width + 12;
-          c.beginPath(); roundRect(c, p.x + 14, p.y - 9, w, 18, 5);
+          const bx = p.x + 14 + w > this.w - 6 ? p.x - 14 - w : p.x + 14; // flip left at the right edge
+          c.beginPath(); roundRect(c, bx, p.y - 9, w, 18, 5);
           c.fillStyle = withAlpha(this.colors.bg, 0.85); c.fill();
           c.strokeStyle = withAlpha(this.colors.accent, 0.45); c.stroke();
-          c.fillStyle = this.colors.fg; c.fillText(txt, p.x + 20, p.y + 0.5);
+          c.fillStyle = this.colors.fg; c.fillText(txt, bx + 6, p.y + 0.5);
         }
       }
       c.textBaseline = "alphabetic";
