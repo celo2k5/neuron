@@ -283,7 +283,8 @@ describe("admin settings", () => {
     process.env.ADMIN_WALLETS = a.wallet;
     const r = await readiness("mainnet-beta");
     expect(r.ready).toBe(false);
-    expect(r.blocking).toEqual(expect.arrayContaining(["rpc", "mint", "treasury", "CHECK_AUDIT"]));
+    expect(r.blocking).toEqual(expect.arrayContaining(["rpc", "mint", "treasury"]));
+    expect(r.blocking).not.toContain("CHECK_AUDIT"); // attestations are recommendations, not blockers
     await expect(goLive(a, "go mainnet")).rejects.toThrow(/GO MAINNET/);
     await expect(goLive(a, "GO MAINNET")).rejects.toThrow(/Not ready/);
     expect(env().SOLANA_CLUSTER).toBe("localnet");

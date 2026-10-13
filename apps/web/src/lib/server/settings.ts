@@ -160,7 +160,7 @@ export async function readiness(target: "mainnet-beta" | "current" = "mainnet-be
       else {
         const i = parsed.info!;
         add({ id: "mint", label: "$NEURON mint set and exists on chain", ok: true, detail: `${i.decimals} decimals · supply ${i.supply}`, required: true });
-        add({ id: "freeze", label: "Mint has no freeze authority", ok: i.freezeAuthority === null, detail: i.freezeAuthority ? `freeze authority ${i.freezeAuthority}` : "none", required: true });
+        add({ id: "freeze", label: "Mint has no freeze authority", ok: i.freezeAuthority === null, detail: i.freezeAuthority ? `freeze authority ${i.freezeAuthority}` : "none", required: false });
         add({ id: "mint-authority", label: "Mint authority is revoked", ok: i.mintAuthority === null, detail: i.mintAuthority ? `still ${i.mintAuthority}: more can be minted` : "revoked (fixed supply)", required: false });
       }
     } catch (err) { add({ id: "mint", label: "$NEURON mint set and exists on chain", ok: false, detail: (err as Error).message.slice(0, 140), required: true }); }
@@ -176,7 +176,7 @@ export async function readiness(target: "mainnet-beta" | "current" = "mainnet-be
   catch (err) { add({ id: "registry", label: "Registry chain intact", ok: false, detail: (err as Error).message, required: true }); }
   add({ id: "allow", label: "Mainnet not blocked by the server environment", ok: e.ALLOW_MAINNET !== "no", detail: e.ALLOW_MAINNET === "no" ? "ALLOW_MAINNET=no" : "allowed", required: true });
   // attestations
-  for (const d of DEFS.filter((x) => x.kind === "check")) add({ id: d.key, label: d.label, ok: !!e[d.key as keyof Env], detail: d.help, required: true });
+  for (const d of DEFS.filter((x) => x.kind === "check")) add({ id: d.key, label: d.label, ok: !!e[d.key as keyof Env], detail: d.help, required: false });
   const blocking = checks.filter((c) => c.required && c.ok !== true);
   return { target, checks, ready: blocking.length === 0, blocking: blocking.map((c) => c.id), checkedAt: new Date().toISOString() };
 }
@@ -202,3 +202,33 @@ export async function registryKeyInfo() {
   return { keyId: k.id, publicKey: k.publicKey };
 }
 export { ensureSettings };
+
+// ---------- one-step launch ----------
+/**
+ * The simple path: four inputs, one button. Validates against the chain first (the RPC must really be
+ * mainnet, the mint must exist there), then writes everything in one transaction and switches over.
+ */
+export async function quickLaunch(s: Session, i: { rpc: string; mint: string; treasury: string; price: string }) {
+  const rpc = i.rpc.trim(), mint = i.mint.trim(), treasury = i.treasury.trim(), price = i.price.trim();
+  try { if (!/^https:$/.test(new URL(rpc).protocol)) throw 0; } catch { throw bad("RPC URL must be an https:// address."); }
+  for (const [n, v] of [["Mint", mint], ["Treasury", treasury]] as const) { try { new PublicKey(v); } catch { throw bad(`${n}: not a valid Solana address.`); } }
+  if (!/^\d+(\.\d+)?$/.test(price) || Number(price) <= 0) throw bad("Price must be a positive number of tokens, e.g. 1 or 0.5.");
+  const { Connection } = await import("@solana/web3.js");
+  const c = new Connection(rpc, "confirmed");
+  const timeout = <T,>(p: Promise<T>) => Promise.race([p, new Promise<never>((_, r) => setTimeout(() => r(new Error("RPC did not answer within 8 s")), 8000))]);
+  let gh: string;
+  try { gh = await timeout(c.getGenesisHash()); } catch (e) { throw bad(`Could not reach the RPC: ${(e as Error).message}`); }
+  if (GENESIS[gh] !== "mainnet-beta") throw bad(`That RPC is on ${GENESIS[gh] ?? "an unknown network"}, not mainnet.`);
+  const info = await timeout(c.getParsedAccountInfo(new PublicKey(mint)));
+  const parsed = (info.value?.data as { parsed?: { type?: string; info?: { decimals: number; freezeAuthority: string | null } } })?.parsed;
+  if (!parsed || parsed.type !== "mint") throw bad("No token mint exists at that address on mainnet.");
+  const dec = parsed.info!.decimals;
+  const [whole, frac = ""] = price.split(".");
+  if (frac.length > dec) throw bad(`This token has ${dec} decimals; use at most ${dec} digits after the point.`);
+  const base = (BigInt(whole) * 10n ** BigInt(dec) + BigInt((frac + "0".repeat(dec)).slice(0, dec) || "0")).toString();
+  if (env().ALLOW_MAINNET === "no") throw bad("Mainnet is blocked by ALLOW_MAINNET=no in the server environment.");
+  await write(s, { SOLANA_RPC: rpc, NEURON_MINT: mint, TREASURY_OWNER: treasury, CREDIT_PRICE_BASE_UNITS: base,
+    SOLANA_FINALITY: "finalized", PAUSE_PAYMENTS: "false", SOLANA_CLUSTER: "mainnet-beta", MAINNET_CONFIRMED: "true" });
+  log.warn("mainnet_enabled", { wallet: s.wallet, via: "quick-launch" });
+  return { ...(await adminState()), launched: { decimals: dec, priceBaseUnits: base, freezeAuthority: parsed.info!.freezeAuthority } };
+}

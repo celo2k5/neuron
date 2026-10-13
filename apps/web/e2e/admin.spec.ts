@@ -17,6 +17,8 @@ async function adminPage(browser: Browser) {
   await expect(page.getByText("Wrong password.")).toBeVisible();
   await page.locator("#admin-pw").fill(process.env.E2E_ADMIN_PASSWORD ?? "test-admin-password");
   await page.getByRole("button", { name: "Enter" }).click();
+  await expect(page.getByTestId("quick-launch")).toContainText("Go live on mainnet");
+  await page.getByTestId("advanced").locator("summary").click();
   return page;
 }
 const field = (p: Page, key: string) => p.getByTestId(`setting-${key}`);
@@ -24,6 +26,12 @@ const field = (p: Page, key: string) => p.getByTestId(`setting-${key}`);
 test("admin edits apply live for every visitor, are audited, and mainnet stays gated", async ({ browser }) => {
   const admin = await adminPage(browser);
   await expect(admin.getByRole("heading", { name: "Control room." })).toBeVisible();
+  // the simple form refuses a non-mainnet RPC before changing anything
+  await admin.getByTestId("ql-rpc").fill("http://127.0.0.1:1");
+  await admin.getByTestId("ql-mint").fill("So11111111111111111111111111111111111111112");
+  await admin.getByTestId("ql-treasury").fill("So11111111111111111111111111111111111111112");
+  await admin.getByTestId("ql-go").click();
+  await expect(admin.getByTestId("quick-launch")).toContainText("https://");
   await expect(admin.getByTestId("readiness")).toContainText("$NEURON mint set and exists on chain");
 
   // a visitor with /credits already open

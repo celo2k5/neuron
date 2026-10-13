@@ -42,6 +42,12 @@ export default function AdminPage() {
         Everything needed to run NEURON and take it to mainnet. Each field saves as you type and takes effect on every page, the API and the worker within a second. No redeploy.
       </PageHeader>
 
+      <QuickLaunch d={d} onSaved={onSaved} />
+
+      <details className="group mt-10" data-testid="advanced">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-[15px] text-muted hover:text-fg">
+          <span className="transition-transform group-open:rotate-90" aria-hidden>›</span> Advanced settings, readiness checks and change log
+        </summary>
       <div className="mt-6 grid gap-6 xl:grid-cols-[200px_minmax(0,1fr)_400px]">
         <nav aria-label="Sections" className="hidden xl:block">
           <ul className="sticky top-[96px] space-y-1 text-[13.5px]">
@@ -84,6 +90,58 @@ export default function AdminPage() {
           </Panel>
         </aside>
       </div>
+      </details>
+    </div>
+  );
+}
+
+function QuickLaunch({ d, onSaved }: { d: AdminState; onSaved: (n: AdminState) => void }) {
+  const live = d.cluster === "mainnet-beta";
+  const val = (k: string) => d.settings?.find((x) => x.key === k)?.value ?? "";
+  const [f, setF] = useState({ rpc: "", mint: val("NEURON_MINT"), treasury: val("TREASURY_OWNER"), price: "1" });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<unknown>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const go = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const r = await api<AdminState & { launched: { decimals: number; freezeAuthority: string | null } }>("/api/admin/launch", { method: "POST", json: f });
+      onSaved(r); setDone(r.launched.freezeAuthority ? "Live. Note: this mint still has a freeze authority." : "Live on mainnet.");
+      qc.invalidateQueries();
+    } catch (e) { setErr(e); } finally { setBusy(false); }
+  };
+  const back = async () => { setBusy(true); try { onSaved(await api<AdminState>("/api/admin/leave-mainnet", { method: "POST", json: { cluster: "devnet" } })); qc.invalidateQueries(); } finally { setBusy(false); } };
+  const row = (k: keyof typeof f, label: string, hint: string, ph: string, type = "text") => (
+    <label className="grid gap-1.5 md:grid-cols-[220px_minmax(0,1fr)] md:items-center md:gap-6">
+      <span><span className="block text-[15px] text-fg">{label}</span><span className="block text-[12.5px] text-muted">{hint}</span></span>
+      <input className="field mono text-[13.5px]" type={type} value={f[k]} placeholder={ph} spellCheck={false} autoComplete="off" onChange={(e) => setF({ ...f, [k]: e.target.value })} data-testid={`ql-${k}`} />
+    </label>
+  );
+  if (live) return (
+    <div className="panel mt-8 p-7" data-testid="quick-launch">
+      <div className="flex flex-wrap items-center gap-3"><span className="dot dot-live text-good" aria-hidden /><h2 className="display text-[34px]">Live on mainnet.</h2></div>
+      <dl className="kv mt-4 text-[13.5px]"><dt>Mint</dt><dd className="mono break-all">{val("NEURON_MINT")}</dd><dt>Treasury</dt><dd className="mono break-all">{val("TREASURY_OWNER")}</dd><dt>Price</dt><dd className="tnum">{val("CREDIT_PRICE_BASE_UNITS")} base units per credit</dd></dl>
+      {done && <p className="mt-3 text-good">{done}</p>}
+      <button className="act-ghost mt-5" disabled={busy} onClick={back}>Switch back to devnet</button>
+    </div>
+  );
+  const ready = f.rpc && f.mint && f.treasury && f.price;
+  return (
+    <div className="panel mt-8 p-7" data-testid="quick-launch">
+      <h2 className="display text-[34px]">Go live on mainnet</h2>
+      <p className="mt-1 text-muted">Fill in four things and press the button. Everything is checked against the chain before anything changes.</p>
+      <div className="mt-6 grid gap-5">
+        {row("rpc", "Mainnet RPC URL", "From Helius, QuickNode or Triton. Stays on the server.", "https://mainnet.helius-rpc.com/?api-key=…", "password")}
+        {row("mint", "$NEURON token address", "The mint of your existing token.", "token mint address")}
+        {row("treasury", "Treasury wallet", "Where credit payments go.", "wallet address")}
+        {row("price", "Price of 1 credit", "In $NEURON tokens.", "1")}
+      </div>
+      <div className="mt-7 flex flex-wrap items-center gap-4">
+        <button className="act-primary lg" disabled={!ready || busy} aria-busy={busy} onClick={go} data-testid="ql-go">{busy ? "Checking the chain…" : "Go live"}</button>
+        <span className="text-[12.5px] text-faint">Everyone is signed out once when the network switches.</span>
+      </div>
+      <ErrorBox error={err} />
     </div>
   );
 }
