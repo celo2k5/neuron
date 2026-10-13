@@ -15,6 +15,7 @@ import { reconcileIntent } from "../src/lib/server/payments";
 import { processProposal } from "../src/lib/server/governance";
 import { ensureNetwork } from "../src/lib/server/community";
 import { env } from "../src/lib/server/env";
+import { ensureSettings } from "../src/lib/server/settings-sync";
 import { log } from "../src/lib/server/log";
 
 const WORKER_ID = `${os.hostname()}-${process.pid}`;
@@ -83,6 +84,7 @@ async function runOne() {
 
 async function main() {
   env();
+  await ensureSettings(); // follows /admin changes live (LISTEN neuron_settings + 5 s poll)
   await ensureNetwork(pool());
   const listener = await pool().connect();
   let wake: (() => void) | null = null;

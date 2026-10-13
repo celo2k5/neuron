@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Header } from "@/components/Header";
+import { SiteBanner } from "@/components/SiteBanner";
 import { Footer } from "@/components/Footer";
 import { BootLoader } from "@/components/BootLoader";
 import { themeBootScript } from "@/lib/client/theme";
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <BootLoader />
           <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 bg-bg px-2 py-1">Skip to content</a>
+          <SiteBanner />
           <Header />
           <main id="main" className="min-h-[calc(100vh-120px)]">{children}</main>
           <Footer />

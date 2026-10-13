@@ -23,6 +23,7 @@ const toIntent = (r: IntentRow): PaymentIntent => ({
 export async function createIntent(s: Session, credits: number) {
   if (!Number.isInteger(credits) || credits < 1 || credits > 10_000) throw bad("Credits must be a whole number from 1 to 10,000.");
   const e = env();
+  if (e.PAUSE_PAYMENTS) throw unavailable("Credit purchases are paused right now. Payments already sent still go through.");
   if (!e.TREASURY_OWNER) throw unavailable("Treasury is not configured (TREASURY_OWNER); purchases are disabled.");
   const m = await neuronMint();
   const amount = (BigInt(e.CREDIT_PRICE_BASE_UNITS) * BigInt(credits)).toString();

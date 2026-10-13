@@ -3,10 +3,12 @@ import { mintInfo, tokenBalance } from "@neuron/solana";
 import { env } from "./env";
 import { unavailable } from "./http";
 
-let conn: Connection | null = null;
+let conn: { url: string; c: Connection } | null = null;
+/** Rebuilt whenever the RPC URL changes at runtime (from /admin). */
 export function connection() {
-  conn ??= new Connection(env().SOLANA_RPC, { commitment: "confirmed" });
-  return conn;
+  const url = env().SOLANA_RPC;
+  if (!conn || conn.url !== url) conn = { url, c: new Connection(url, { commitment: "confirmed" }) };
+  return conn.c;
 }
 
 const mintCache = new Map<string, { decimals: number; programId: string; at: number }>();

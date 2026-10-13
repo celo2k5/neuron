@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ACTIVATIONS, hashCanonical } from "@neuron/engine";
 import { one, q, tx, emit, pool, type Db } from "./db";
 import { walletBalance } from "./chain";
+import { env } from "./env";
 import { consumeChallenge, type Session } from "./auth";
 import { applyPolicy } from "./community";
 import { bad, conflict, forbidden, notFound } from "./http";
@@ -16,18 +17,18 @@ import { enqueue } from "./jobs";
  *  - "policy" proposals may only change whitelisted community-network parameters, after an execution delay
  *  - nothing here can move treasury funds
  */
-const tokenWeighted = () => !!process.env.NEURON_MINT;
+const tokenWeighted = () => !!env().NEURON_MINT;
 export function rules() {
-  const t = tokenWeighted();
+  const t = tokenWeighted(), e = env();
   return {
     weighting: t ? ("token" as const) : ("wallet" as const),
     /** token mode: base units held to propose; wallet mode: any signed-in wallet (rate limited) */
-    proposalThresholdBase: t ? BigInt(process.env.GOV_PROPOSAL_THRESHOLD ?? "100000000") : 0n,
+    proposalThresholdBase: t ? BigInt(e.GOV_PROPOSAL_THRESHOLD) : 0n,
     /** token mode: sum of base units; wallet mode: number of voting wallets */
-    quorumBase: t ? BigInt(process.env.GOV_QUORUM ?? "1000000000") : BigInt(process.env.GOV_QUORUM_VOTERS ?? "3"),
+    quorumBase: t ? BigInt(e.GOV_QUORUM) : BigInt(e.GOV_QUORUM_VOTERS),
     approvalBps: 6000,
-    votingPeriodSec: Number(process.env.GOV_VOTING_PERIOD_SEC ?? 3 * 86400),
-    executionDelaySec: Number(process.env.GOV_EXECUTION_DELAY_SEC ?? 86400),
+    votingPeriodSec: e.GOV_VOTING_PERIOD_SEC,
+    executionDelaySec: e.GOV_EXECUTION_DELAY_SEC,
     snapshotRule: t ? "token balance at vote; one vote per wallet" : "one signed vote per wallet, weight 1",
   };
 }

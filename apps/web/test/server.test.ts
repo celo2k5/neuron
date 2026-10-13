@@ -10,6 +10,8 @@ import { balance, purchase, reserve, settle, grant, claimDaily } from "@/lib/ser
 import { commit, verifyExperiment, verifyChain } from "@/lib/server/commitments";
 import { castVote, createProposal, tally } from "@/lib/server/governance";
 import { votePayloadHash } from "@/lib/server/governance";
+import { updateSetting, requireAdmin, goLive, readiness, adminState } from "@/lib/server/settings";
+import { env, publicConfig } from "@/lib/server/env";
 import { claim, complete, enqueue, fail, requeueStale } from "@/lib/server/jobs";
 import { createModel, loadVersion, listModels } from "@/lib/server/models";
 import { createExperiment, executeExperiment, getExperiment, recomputeHashes } from "@/lib/server/experiments";
@@ -247,5 +249,48 @@ describe("governance without a token", () => {
     const again = await issueChallenge(a.wallet, "vote", votePayloadHash(p.id, "against"));
     await expect(castVote(a, p.id, "against", { message: again.message, signature: sign(ka, again.message) })).rejects.toThrow(/already voted/);
     expect(await tally(pool(), p.id)).toMatchObject({ for: "2", voters: 2 });
+  });
+});
+
+describe("admin settings", () => {
+  it("only admin wallets get in; changes validate, apply live, and are audited", async () => {
+    const ka = kp(), kb = kp();
+    const a = await session(ka), b = await session(kb);
+    process.env.ADMIN_WALLETS = a.wallet;
+    expect(() => requireAdmin(null)).toThrow(/Sign in/);
+    expect(() => requireAdmin(b)).toThrow(/not an admin/);
+    requireAdmin(a);
+    const before = env().DAILY_CLAIM_CREDITS;
+    await updateSetting(a, "DAILY_CLAIM_CREDITS", String(before + 7));
+    expect(env().DAILY_CLAIM_CREDITS).toBe(before + 7);            // live in this process, no restart
+    expect(publicConfig().dailyClaimCredits).toBe(before + 7);
+    await updateSetting(a, "SITE_BANNER", "Maintenance at 21:00 UTC");
+    expect(publicConfig().banner).toBe("Maintenance at 21:00 UTC");
+    await expect(updateSetting(a, "DAILY_CLAIM_CREDITS", "-3")).rejects.toThrow();
+    await expect(updateSetting(a, "NEURON_MINT", "not-a-key")).rejects.toThrow(/Solana address/);
+    await expect(updateSetting(a, "SOLANA_CLUSTER", "mainnet-beta")).rejects.toThrow(/go-live/);
+    await expect(updateSetting(a, "DATABASE_URL", "postgres://x")).rejects.toThrow(/not editable/);
+    await updateSetting(a, "DAILY_CLAIM_CREDITS", "");                // back to the default
+    expect(env().DAILY_CLAIM_CREDITS).toBe(before);
+    const st = await adminState();
+    expect(st.audit.map((x) => x.key)).toEqual(expect.arrayContaining(["DAILY_CLAIM_CREDITS", "SITE_BANNER"]));
+    const ev = await one<{ n: number }>("select count(*)::int as n from activity_events where topic = 'config.updated'");
+    expect(ev!.n).toBeGreaterThanOrEqual(3);                         // every change is pushed to browsers
+    await updateSetting(a, "SITE_BANNER", "");
+  });
+  it("refuses mainnet until every required check passes, and hides the server RPC from browsers", async () => {
+    const a = await session(kp());
+    process.env.ADMIN_WALLETS = a.wallet;
+    const r = await readiness("mainnet-beta");
+    expect(r.ready).toBe(false);
+    expect(r.blocking).toEqual(expect.arrayContaining(["rpc", "mint", "treasury", "CHECK_AUDIT"]));
+    await expect(goLive(a, "go mainnet")).rejects.toThrow(/GO MAINNET/);
+    await expect(goLive(a, "GO MAINNET")).rejects.toThrow(/Not ready/);
+    expect(env().SOLANA_CLUSTER).toBe("localnet");
+    await updateSetting(a, "SOLANA_CLUSTER", "devnet");
+    await updateSetting(a, "SOLANA_RPC", "https://rpc.example.com/?api-key=secret123");
+    expect(publicConfig().rpc).toBe("https://api.devnet.solana.com");
+    expect(JSON.stringify(await adminState())).not.toContain("secret123");
+    await updateSetting(a, "SOLANA_RPC", ""); await updateSetting(a, "SOLANA_CLUSTER", "");
   });
 });

@@ -17,6 +17,8 @@ const INVALIDATE: [RegExp, (a: Activity) => unknown[][]][] = [
   [/^payment\./, () => [["payments"], ["session"], ["credits"], ["ledger"], ["token"]]],
   [/^registry\./, () => [["ledger"], ["experiment"]]],
   [/^governance\./, () => [["governance"]]],
+  // a setting changed in /admin: refetch everything that reads configuration
+  [/^config\./, () => [["config"], ["admin"], ["readiness"], ["governance"], ["credits"], ["session"], ["token"], ["ready"]]],
 ];
 
 export function useEventStream() {

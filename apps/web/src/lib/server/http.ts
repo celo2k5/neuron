@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z, ZodError, type ZodTypeAny } from "zod";
 import { ValidationError, NumericError } from "@neuron/engine";
 import { log } from "./log";
+import { ensureSettings } from "./settings-sync";
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details?: unknown) {
@@ -24,6 +25,7 @@ export function handler<P = Record<string, string>>(fn: (c: Ctx<P>) => Promise<u
     const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
     const t0 = Date.now();
     try {
+      await ensureSettings();
       const out = await fn({ req, params: (await ctx?.params) ?? ({} as P), requestId });
       const res = out instanceof Response ? out : NextResponse.json(out ?? { ok: true });
       res.headers.set("x-request-id", requestId);

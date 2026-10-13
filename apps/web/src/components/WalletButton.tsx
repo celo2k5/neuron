@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client/api";
 import { DEV_WALLET, useNeuronWallet, useSession, useSignIn, useConfig } from "@/lib/client/wallet";
 import { short } from "./ui";
@@ -76,7 +76,7 @@ export function WalletButton() {
                   <dt>credits</dt><dd data-testid="credits-available">{s?.credits?.available ?? 0} available</dd>
                   <dt>reserved</dt><dd>{s?.credits?.reserved ?? 0}</dd>
                 </dl>
-                <Link href="/credits" className="act-ghost sm mt-3 no-underline">Claim daily credits</Link></>
+                <div className="mt-3 flex flex-wrap gap-2"><Link href="/credits" className="act-ghost sm no-underline">Claim daily credits</Link><AdminLink /></div></>
               ) : (
                 <div className="mt-3">
                   <p className="text-muted">Sign a one-time challenge to start a session. It costs nothing and moves no funds.</p>
@@ -121,4 +121,10 @@ function DevTools({ address }: { address: string }) {
       <p aria-live="polite" className="mt-1 text-[11.5px] text-muted empty:hidden">{msg ?? ""}</p>
     </div>
   );
+}
+
+/** only admins see this; the server decides */
+function AdminLink() {
+  const q = useQuery({ queryKey: ["admin"], queryFn: () => api<{ admin: boolean }>("/api/admin"), staleTime: 60_000 });
+  return q.data?.admin ? <Link href="/admin" className="act-ghost sm no-underline">Admin</Link> : null;
 }

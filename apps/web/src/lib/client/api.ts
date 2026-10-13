@@ -28,6 +28,8 @@ export interface PublicConfig {
   rpc: string;
   registry: "server";
   tokenEnabled: boolean;
+  paymentsPaused: boolean;
+  banner: string | null;
   mint: string | null;
   treasury: string | null;
   creditPriceBaseUnits: string;

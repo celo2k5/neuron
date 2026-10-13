@@ -42,6 +42,10 @@ Open http://localhost:3000. With `SOLANA_CLUSTER=localnet` the wallet menu offer
 
 `docker-compose.yml` describes the same stack, but it was **not executed** in the build environment (no Docker daemon). `infra/localnet.sh` is the verified path.
 
+## Admin
+
+`/admin` is the control room for everything that has to be set to run on mainnet. Admins are the wallets in `ADMIN_WALLETS`. Settings live in `app_settings`, override the matching environment variables, and reach every process within a second (Postgres `LISTEN/NOTIFY`, with a 5 s poll as backup) and every open browser through the event stream. Mainnet is switched on only by the go-live action, after every required readiness check passes.
+
 ## Server registry
 
 Recording an experiment appends `(seq, experiment, owner, result/artifact/metadata hashes, prev_hash, key, time)` to `registry_entries`. The entry hash covers all of it, including the previous entry's hash, and is signed with the server's ed25519 key (`REGISTRY_SIGNING_KEY`, or one generated once and kept in `registry_keys`). A trigger refuses updates and deletes. `GET /api/commitments/:id` re-checks one entry; `GET /api/ledger` re-walks the whole chain and publishes the head hash and the public key(s).
