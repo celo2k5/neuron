@@ -9,7 +9,7 @@ type Kind = "text" | "url" | "secret-url" | "pubkey" | "int" | "bigint" | "bool"
 interface Setting { key: string; group: string; label: string; help: string; kind: Kind; options?: string[]; unit?: string; required?: boolean; placeholder?: string;
   value: string; secretSet?: boolean; source: "admin" | "env" | "default"; updatedBy: string | null; updatedAt: string | null }
 interface AdminState {
-  admin: boolean; signedIn: boolean; wallet: string | null; adminsConfigured: boolean;
+  admin: boolean; wallet?: string | null; passwordConfigured?: boolean;
   settings?: Setting[]; audit?: { id: string; key: string; old_value: string | null; new_value: string | null; wallet: string; created_at: string }[];
   cluster?: string; mainnetConfirmed?: boolean; bootstrap?: { registryKeyFromEnv: boolean; artifactStore: string; allowMainnet: string | null };
   registryKey?: { keyId: string; publicKey: string };
@@ -26,7 +26,7 @@ export default function AdminPage() {
 
   if (st.isLoading) return <div className="p-8"><Spinner label="loading admin" /></div>;
   if (st.error) return <div className="mx-auto max-w-[900px] p-8"><ErrorBox error={st.error} /></div>;
-  if (!d?.admin) return <Gate d={d} />;
+  if (!d?.admin) return <Gate d={d} onIn={() => qc.invalidateQueries()} />;
 
   const byGroup = (g: string) => d.settings!.filter((s) => s.group === g);
   const onSaved = (next: AdminState) => qc.setQueryData(["admin"], (old: AdminState | undefined) => ({ ...old, ...next }));
@@ -36,7 +36,8 @@ export default function AdminPage() {
       <PageHeader title="Control room." meta={<>
         <span className={`pill ${d.cluster === "mainnet-beta" ? "text-good" : "text-accent-2"}`}>{d.cluster}</span>
         <span className="flex items-center gap-1.5"><span className={`dot ${live === "live" ? "text-good dot-live" : "text-warn"}`} aria-hidden />{live === "live" ? "Changes apply everywhere instantly" : "Reconnecting to the live stream…"}</span>
-        <span>signed in as <span className="mono">{short(d.wallet!, 5)}</span></span>
+        <span>signed in{d.wallet && d.wallet !== "password" ? <> as <span className="mono">{short(d.wallet, 5)}</span></> : " with the admin password"}</span>
+        <button className="act sm" onClick={async () => { await api("/api/admin/login", { method: "DELETE" }); qc.invalidateQueries(); }}>Sign out of admin</button>
       </>}>
         Everything needed to run NEURON and take it to mainnet. Each field saves as you type and takes effect on every page, the API and the worker within a second. No redeploy.
       </PageHeader>
@@ -89,15 +90,28 @@ export default function AdminPage() {
 
 const slug = (g: string) => g.toLowerCase().replace(/[^a-z]+/g, "-");
 
-function Gate({ d }: { d?: AdminState }) {
+function Gate({ d, onIn }: { d?: AdminState; onIn: () => void }) {
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<unknown>(null);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault(); setBusy(true); setErr(null);
+    try { await api("/api/admin/login", { method: "POST", json: { password: pw } }); setPw(""); onIn(); }
+    catch (x) { setErr(x); } finally { setBusy(false); }
+  };
   return (
-    <div className="mx-auto max-w-[760px] px-5 py-24 sm:px-8">
+    <div className="mx-auto max-w-[480px] px-5 py-24 sm:px-8">
       <h1 className="display text-[56px]">Admin</h1>
-      <div className="panel mt-6 p-6 text-[15px]">
-        {!d?.signedIn ? <p>Connect an admin wallet with the button at the top right and sign the challenge. It costs nothing and moves no funds.</p>
-          : !d.adminsConfigured ? <><p>No admin wallets are configured yet.</p><p className="mt-2 text-muted">Add <span className="mono text-fg">ADMIN_WALLETS={d.wallet}</span> to the server environment (Render → neuron → Environment), save, and reload this page.</p></>
-          : <p>The wallet <span className="mono">{short(d.wallet ?? "", 6)}</span> is not an admin.</p>}
-      </div>
+      {d?.passwordConfigured === false ? (
+        <div className="panel mt-6 p-6 text-[15px]"><p>Admin access is not configured.</p><p className="mt-2 text-muted">Set <span className="mono text-fg">ADMIN_PASSWORD</span> in the server environment (Render → neuron → Environment) and reload.</p></div>
+      ) : (
+        <form className="panel mt-6 flex flex-col gap-3 p-6" onSubmit={submit} data-testid="admin-login">
+          <label htmlFor="admin-pw" className="text-[14px]">Password</label>
+          <input id="admin-pw" type="password" className="field" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} autoFocus />
+          <button className="act-primary self-start" disabled={busy || !pw} aria-busy={busy}>{busy ? "Checking…" : "Enter"}</button>
+          <ErrorBox error={err} />
+        </form>
+      )}
     </div>
   );
 }

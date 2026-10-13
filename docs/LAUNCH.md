@@ -13,7 +13,7 @@ NEURON runs entirely on the server: registry, credits, governance, training and 
 
 ## 2. The admin console (/admin)
 
-- [ ] Set `ADMIN_WALLETS` (comma-separated wallet addresses) in Render → Environment once; sign in with that wallet and open **/admin** (also linked from the wallet menu)
+- [x] `ADMIN_PASSWORD` set in Render → Environment; open **/admin** and enter it (admin wallets in `ADMIN_WALLETS` also work)
 - Every runtime setting is edited there and applies to every page, the API and the worker within a second, with no redeploy: cluster, server and public RPC, payment finality, $NEURON mint, treasury, credit price, payment kill switch, free tiers, daily credits, governance rules, domain, site banner
 - Each change is validated before it lands, recorded in the change log (who, when, old → new) and pushed to every open browser
 - **Mainnet readiness** checks the chain live: RPC reachable and actually on mainnet (genesis hash), mint exists, no freeze authority, mint authority revoked (recommended), treasury set, HTTPS domain, registry chain intact, plus the launch attestations you tick

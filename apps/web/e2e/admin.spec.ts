@@ -3,25 +3,20 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 /**
  * /admin end to end: an admin wallet edits settings and a second, unrelated visitor sees them
  * change on an already-open page, without reloading (SSE → config refetch).
- * The server must run with ADMIN_WALLETS containing ADMIN below (see README, "Admin").
+ * The server must run with ADMIN_PASSWORD = E2E_ADMIN_PASSWORD (default "test-admin-password").
  */
-const ADMIN = "14BGX7Knx1pJrMnQGdmxDykxFEzkMghYVqsBSTzppbFX"; // deterministic test-only dev key, localnet
-const ADMIN_SECRET = "99uqd56BHxksGD8TMFFMLMQdt2aHjfQS8wDVYbbNT3kvgBD1HQuyaf6YfexbNxfk9PKM7T1qViU7QdWaS78pHeH";
 test.describe.configure({ mode: "serial" });
 
 async function adminPage(browser: Browser) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-  await ctx.addInitScript(([k]) => {
-    try { sessionStorage.setItem("neuron.booted", "1"); localStorage.setItem("neuron.devwallet.v1", k); } catch { /* */ }
-  }, [ADMIN_SECRET]);
+  await ctx.addInitScript(() => { try { sessionStorage.setItem("neuron.booted", "1"); } catch { /* */ } });
   const page = await ctx.newPage();
   await page.goto("/admin");
-  await page.getByTestId("wallet-button").click();
-  await page.getByTestId("dev-wallet").click();
-  await page.getByTestId("sign-in").click();
-  await expect(page.getByTestId("credits-available")).toBeVisible();
-  await page.keyboard.press("Escape");
-  await page.reload();
+  await page.locator("#admin-pw").fill("wrong-password");
+  await page.getByRole("button", { name: "Enter" }).click();
+  await expect(page.getByText("Wrong password.")).toBeVisible();
+  await page.locator("#admin-pw").fill(process.env.E2E_ADMIN_PASSWORD ?? "test-admin-password");
+  await page.getByRole("button", { name: "Enter" }).click();
   return page;
 }
 const field = (p: Page, key: string) => p.getByTestId(`setting-${key}`);
@@ -70,7 +65,7 @@ test("non-admins are kept out", async ({ browser }) => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
   await page.goto("/admin");
-  await expect(page.getByText("Connect an admin wallet")).toBeVisible();
+  await expect(page.getByTestId("admin-login")).toBeVisible();
   const r = await page.request.patch("/api/admin/settings", { data: { key: "SITE_BANNER", value: "x" } });
   expect(r.status()).toBe(401);
 });
